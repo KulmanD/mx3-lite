@@ -4,6 +4,10 @@ import Foundation
 struct CLI {
     private let paths = AppPaths()
 
+    private var lifecycle: WorkerLifecycle {
+        WorkerLifecycle(paths: paths)
+    }
+
     func run() throws {
         var args = Array(CommandLine.arguments.dropFirst())
         let executableName = URL(fileURLWithPath: CommandLine.arguments.first ?? "mx3-lite").lastPathComponent
@@ -122,19 +126,25 @@ struct CLI {
     private func start(debug: Bool) throws {
         try paths.ensureDirectories()
 
-        if let pid = try currentLivePID() {
-            print("mx3-lite is already running (pid \(pid))")
+        try lifecycle.withExclusiveLock {
+            try startLocked(debug: debug)
+        }
+    }
+
+    private func startLocked(debug: Bool) throws {
+        if let worker = try lifecycle.liveWorker() {
+            print("mx3-lite is already running (pid \(worker.pid))")
             return
         }
-
-        try removeStalePIDFile()
 
         guard let executableURL = Bundle.main.executableURL else {
             throw CLIError("could not resolve executable path")
         }
 
+        let resolvedExecutableURL = executableURL.resolvingSymlinksInPath()
+
         let process = Process()
-        process.executableURL = executableURL.resolvingSymlinksInPath()
+        process.executableURL = resolvedExecutableURL
         process.arguments = debug ? ["run", "--debug"] : ["run"]
         process.standardInput = FileHandle(forReadingAtPath: "/dev/null")
 
@@ -153,11 +163,25 @@ struct CLI {
         }
 
         try process.run()
-        try "\(process.processIdentifier)\n".write(to: paths.pidFile, atomically: true, encoding: .utf8)
+
+        guard
+            let identity = lifecycle.inspectProcess(pid: process.processIdentifier),
+            identity.executablePath == lifecycle.expectedExecutablePath
+        else {
+            process.terminate()
+            throw CLIError("could not verify the new worker process identity")
+        }
+
+        do {
+            try lifecycle.writeMetadata(identity)
+        } catch {
+            process.terminate()
+            throw error
+        }
 
         usleep(150_000)
-        if !processExists(process.processIdentifier) {
-            try removeStalePIDFile()
+        if !lifecycle.isAlive(identity) {
+            lifecycle.removeMetadata(ifOwnedBy: identity)
             throw CLIError("worker exited immediately. Check macOS permissions or run mx3-lite run --debug.")
         }
 
@@ -168,49 +192,63 @@ struct CLI {
     }
 
     private func stop() throws {
-        guard let pid = try readPID() else {
-            try removeStalePIDFile()
+        try paths.ensureDirectories()
+
+        try lifecycle.withExclusiveLock {
+            try stopLocked()
+        }
+    }
+
+    private func stopLocked() throws {
+        guard let worker = try lifecycle.liveWorker() else {
             print("mx3-lite is stopped")
             return
         }
 
-        if !processExists(pid) {
-            try removeStalePIDFile()
-            print("mx3-lite is stopped")
-            return
-        }
-
-        if Darwin.kill(pid, SIGTERM) != 0 {
-            throw CLIError("failed to stop pid \(pid): \(String(cString: strerror(errno)))")
-        }
+        try lifecycle.send(signal: SIGTERM, to: worker)
 
         let deadline = Date().addingTimeInterval(2.0)
-        while processExists(pid), Date() < deadline {
+        while lifecycle.isAlive(worker), Date() < deadline {
             usleep(50_000)
         }
 
-        if processExists(pid) {
-            _ = Darwin.kill(pid, SIGKILL)
+        if lifecycle.isAlive(worker) {
+            try lifecycle.send(signal: SIGKILL, to: worker)
+            let killDeadline = Date().addingTimeInterval(0.5)
+            while lifecycle.isAlive(worker), Date() < killDeadline {
+                usleep(25_000)
+            }
         }
 
-        try removeStalePIDFile()
+        guard !lifecycle.isAlive(worker) else {
+            throw CLIError("worker pid \(worker.pid) did not exit")
+        }
+
+        lifecycle.removeMetadata(ifOwnedBy: worker)
         print("mx3-lite stopped")
     }
 
     private func toggle(debug: Bool) throws {
-        if let _ = try currentLivePID() {
-            try stop()
-        } else {
-            try start(debug: debug)
+        try paths.ensureDirectories()
+
+        try lifecycle.withExclusiveLock {
+            if try lifecycle.liveWorker() != nil {
+                try stopLocked()
+            } else {
+                try startLocked(debug: debug)
+            }
         }
     }
 
     private func status() throws {
-        if let pid = try currentLivePID() {
-            print("mx3-lite is running (pid \(pid))")
-        } else {
-            try removeStalePIDFile()
-            print("mx3-lite is stopped")
+        try paths.ensureDirectories()
+
+        try lifecycle.withExclusiveLock {
+            if let worker = try lifecycle.liveWorker() {
+                print("mx3-lite is running (pid \(worker.pid))")
+            } else {
+                print("mx3-lite is stopped")
+            }
         }
     }
 
@@ -319,9 +357,10 @@ struct CLI {
 
         let configStore = ConfigStore(paths: paths)
         let config = try configStore.loadOrCreate()
-        try "\(getpid())\n".write(to: paths.pidFile, atomically: true, encoding: .utf8)
+        let workerIdentity = try lifecycle.currentProcessIdentity()
+        try lifecycle.writeMetadata(workerIdentity)
         defer {
-            try? FileManager.default.removeItem(at: paths.pidFile)
+            lifecycle.removeMetadata(ifOwnedBy: workerIdentity)
         }
 
         let logger = DebugLogger(enabled: debug)
@@ -344,7 +383,7 @@ struct CLI {
             logger.log("worker stopping")
             eventTap.stop()
             mxMasterRegistry.stop()
-            try? FileManager.default.removeItem(at: paths.pidFile)
+            lifecycle.removeMetadata(ifOwnedBy: workerIdentity)
             CFRunLoopStop(CFRunLoopGetMain())
         }
 
@@ -353,34 +392,6 @@ struct CLI {
     }
 
     private func currentLivePID() throws -> pid_t? {
-        guard let pid = try readPID() else {
-            return nil
-        }
-        return processExists(pid) ? pid : nil
-    }
-
-    private func readPID() throws -> pid_t? {
-        guard FileManager.default.fileExists(atPath: paths.pidFile.path) else {
-            return nil
-        }
-
-        let raw = try String(contentsOf: paths.pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let pid = pid_t(raw), pid > 0 else {
-            return nil
-        }
-        return pid
-    }
-
-    private func processExists(_ pid: pid_t) -> Bool {
-        if Darwin.kill(pid, 0) == 0 {
-            return true
-        }
-        return errno == EPERM
-    }
-
-    private func removeStalePIDFile() throws {
-        if FileManager.default.fileExists(atPath: paths.pidFile.path) {
-            try FileManager.default.removeItem(at: paths.pidFile)
-        }
+        try lifecycle.liveWorker().map { pid_t($0.pid) }
     }
 }

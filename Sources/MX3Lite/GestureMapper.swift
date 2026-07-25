@@ -7,14 +7,7 @@ final class GestureMapper {
     private let liveEventDebug: Bool
     private let mxMasterRegistry: MXMasterDeviceRegistry
     private let scrollTransformer = ScrollTransformer()
-    private var gestureActive = false
-    private var gestureConsumed = false
-    private var startLocation: CGPoint?
-    private var lastLocation: CGPoint?
-    private var accumulatedDx = 0.0
-    private var accumulatedDy = 0.0
-    private var accumulatedScrollX = 0.0
-    private var accumulatedScrollY = 0.0
+    private var gestureState = GestureState()
 
     init(config: AppConfig, logger: DebugLogger, liveEventDebug: Bool, mxMasterRegistry: MXMasterDeviceRegistry) {
         self.config = config
@@ -81,45 +74,29 @@ final class GestureMapper {
     private func handleButtonDown(event: CGEvent) -> Bool {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
 
-        if matches(button, config.buttons.gesture) {
-            gestureActive = true
-            gestureConsumed = false
-            startLocation = event.location
-            lastLocation = event.location
-            accumulatedDx = 0
-            accumulatedDy = 0
-            accumulatedScrollX = 0
-            accumulatedScrollY = 0
+        switch GestureState.buttonDownDecision(button: button, buttons: config.buttons, gestureActive: gestureState.isActive) {
+        case .beginGesture:
+            gestureState.begin(at: event.location)
             logger.log("gesture start button=\(button) startLocation=\(event.location.compactDescription)")
             return true
-        }
-
-        if gestureActive && matchesSideButton(button) {
+        case .suppressSideButton:
             logger.log("side button suppressed during gesture hold button=\(button)")
             return true
-        }
-
-        if matches(button, config.buttons.back) {
-            logger.log("back button=\(button) -> cmd+[")
-            KeySender.sendCommandBracket(left: true)
+        case .commandBracket(let left):
+            logger.log("\(left ? "back" : "forward") button=\(button) -> cmd+\(left ? "[" : "]")")
+            KeySender.sendCommandBracket(left: left)
             return true
+        case .passThrough:
+            return false
         }
-
-        if matches(button, config.buttons.forward) {
-            logger.log("forward button=\(button) -> cmd+]")
-            KeySender.sendCommandBracket(left: false)
-            return true
-        }
-
-        return false
     }
 
     private func handleButtonUp(event: CGEvent) -> Bool {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
 
         if matches(button, config.buttons.gesture) {
-            logger.log("gesture end button=\(button) final accumulatedDx=\(format(accumulatedDx)) accumulatedDy=\(format(accumulatedDy)) accumulatedScrollX=\(format(accumulatedScrollX)) accumulatedScrollY=\(format(accumulatedScrollY))")
-            resetGesture()
+            logger.log("gesture end button=\(button) final accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
+            gestureState.end()
             return true
         }
 
@@ -131,33 +108,26 @@ final class GestureMapper {
     }
 
     private func handleMovement(type: CGEventType, event: CGEvent) -> Bool {
-        guard gestureActive else {
+        guard gestureState.isActive else {
             return false
         }
 
         let currentLocation = event.location
-        let previousLocation = lastLocation ?? currentLocation
+        let previousLocation = gestureState.lastLocation ?? currentLocation
         let stepDx = Double(currentLocation.x - previousLocation.x)
-        var stepDy = Double(currentLocation.y - previousLocation.y)
-        if config.invertY {
-            stepDy = -stepDy
-        }
+        let rawStepDy = Double(currentLocation.y - previousLocation.y)
+        let stepDy = config.invertY ? -rawStepDy : rawStepDy
+        gestureState.addMovement(to: currentLocation, invertY: config.invertY)
 
-        accumulatedDx += stepDx
-        accumulatedDy += stepDy
-        lastLocation = currentLocation
+        logger.log("gesture move type=\(type.label) stepDx=\(format(stepDx)) stepDy=\(format(stepDy)) accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy))")
 
-        logger.log("gesture move type=\(type.label) stepDx=\(format(stepDx)) stepDy=\(format(stepDy)) accumulatedDx=\(format(accumulatedDx)) accumulatedDy=\(format(accumulatedDy))")
-
-        if !gestureConsumed {
-            evaluateGesture()
-        }
+        evaluateGesture(source: "pointer")
 
         return true
     }
 
     private func handleScroll(event: CGEvent) -> Bool {
-        guard gestureActive else {
+        guard gestureState.isActive else {
             if let result = scrollTransformer.apply(
                 to: event,
                 config: config,
@@ -172,105 +142,30 @@ final class GestureMapper {
         let axis1 = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1))
         let axis2 = Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2))
 
-        accumulatedScrollY += axis1
-        accumulatedScrollX += axis2
+        gestureState.addScroll(axis1: axis1, axis2: axis2)
 
-        logger.log("gesture scroll axis1=\(format(axis1)) axis2=\(format(axis2)) accumulatedScrollX=\(format(accumulatedScrollX)) accumulatedScrollY=\(format(accumulatedScrollY))")
+        logger.log("gesture scroll axis1=\(format(axis1)) axis2=\(format(axis2)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
 
-        if !gestureConsumed {
-            evaluateGesture()
-        }
+        evaluateGesture(source: "scroll")
 
         return false
     }
 
-    private func evaluateGesture() {
-        guard !gestureConsumed else {
+    private func evaluateGesture(source: String) {
+        guard let action = gestureState.consumeAction(
+            threshold: config.threshold,
+            downAction: config.downAction,
+            invertDesktopDirection: config.invertDesktopGestureDirection
+        ) else {
             return
         }
 
-        let threshold = max(config.threshold, 1)
-
-        if accumulatedDx < -threshold {
-            triggerHorizontalGesture(.left, source: "pointer")
-            return
-        }
-        if accumulatedDx > threshold {
-            triggerHorizontalGesture(.right, source: "pointer")
-            return
-        }
-        if accumulatedDy < -threshold {
-            triggerGesture(.up, source: "pointer")
-            return
-        }
-        if accumulatedDy > threshold {
-            triggerDown(source: "pointer")
-            return
-        }
-
-        if accumulatedScrollX < -threshold {
-            triggerHorizontalGesture(.left, source: "scroll")
-            return
-        }
-        if accumulatedScrollX > threshold {
-            triggerHorizontalGesture(.right, source: "scroll")
-            return
-        }
-        if accumulatedScrollY < -threshold {
-            triggerGesture(.up, source: "scroll")
-            return
-        }
-        if accumulatedScrollY > threshold {
-            triggerDown(source: "scroll")
-        }
-    }
-
-    private func resetGesture() {
-        gestureActive = false
-        gestureConsumed = false
-        startLocation = nil
-        lastLocation = nil
-        accumulatedDx = 0
-        accumulatedDy = 0
-        accumulatedScrollX = 0
-        accumulatedScrollY = 0
-    }
-
-    private func triggerGesture(_ direction: ArrowDirection, source: String) {
-        gestureConsumed = true
-        logger.log("gesture \(direction.label) source=\(source) accumulatedDx=\(format(accumulatedDx)) accumulatedDy=\(format(accumulatedDy)) accumulatedScrollX=\(format(accumulatedScrollX)) accumulatedScrollY=\(format(accumulatedScrollY)) -> ctrl+\(direction.label)")
-        KeySender.sendControlArrow(direction, backend: config.actionBackend, logger: logger)
-    }
-
-    private func triggerHorizontalGesture(_ physicalDirection: ArrowDirection, source: String) {
-        let actionDirection = horizontalActionDirection(for: physicalDirection)
-        gestureConsumed = true
-        logger.log("gesture physical-\(physicalDirection.label) source=\(source) invertDesktopGestureDirection=\(config.invertDesktopGestureDirection) action=\(actionDirection.label) accumulatedDx=\(format(accumulatedDx)) accumulatedDy=\(format(accumulatedDy)) accumulatedScrollX=\(format(accumulatedScrollX)) accumulatedScrollY=\(format(accumulatedScrollY)) -> ctrl+\(actionDirection.label)")
-        KeySender.sendControlArrow(actionDirection, backend: config.actionBackend, logger: logger)
-    }
-
-    private func horizontalActionDirection(for physicalDirection: ArrowDirection) -> ArrowDirection {
-        guard config.invertDesktopGestureDirection else {
-            return physicalDirection
-        }
-
-        switch physicalDirection {
-        case .left:
-            return .right
-        case .right:
-            return .left
-        case .up, .down:
-            return physicalDirection
-        }
-    }
-
-    private func triggerDown(source: String) {
-        switch config.downAction {
-        case .ctrlDown:
-            triggerGesture(.down, source: source)
-        case .disabled:
-            gestureConsumed = true
-            logger.log("gesture down source=\(source) disabled accumulatedDx=\(format(accumulatedDx)) accumulatedDy=\(format(accumulatedDy)) accumulatedScrollX=\(format(accumulatedScrollX)) accumulatedScrollY=\(format(accumulatedScrollY))")
+        switch action {
+        case .controlArrow(let direction):
+            logger.log("gesture action=ctrl+\(direction.label) source=\(source) invertDesktopGestureDirection=\(config.invertDesktopGestureDirection) accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
+            KeySender.sendControlArrow(direction, backend: config.actionBackend, logger: logger)
+        case .disabledDown:
+            logger.log("gesture down source=\(source) disabled accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
         }
     }
 
@@ -279,8 +174,8 @@ final class GestureMapper {
             "event type=\(type.label)",
             "locationX=\(format(Double(event.location.x)))",
             "locationY=\(format(Double(event.location.y)))",
-            "gestureActive=\(gestureActive)",
-            "gestureConsumed=\(gestureConsumed)",
+            "gestureActive=\(gestureState.isActive)",
+            "gestureConsumed=\(gestureState.isConsumed)",
             "suppressed=\(suppressed)"
         ]
 
@@ -294,8 +189,8 @@ final class GestureMapper {
             let deltaY = event.getIntegerValueField(.mouseEventDeltaY)
             fields.append("deltaX=\(deltaX)")
             fields.append("deltaY=\(deltaY)")
-            fields.append("accumulatedDx=\(format(accumulatedDx))")
-            fields.append("accumulatedDy=\(format(accumulatedDy))")
+            fields.append("accumulatedDx=\(format(gestureState.accumulatedDx))")
+            fields.append("accumulatedDy=\(format(gestureState.accumulatedDy))")
         }
 
         if type == .scrollWheel {
@@ -307,8 +202,8 @@ final class GestureMapper {
             fields.append("scrollAxis2=\(axis2)")
             fields.append("scrollPointAxis1=\(pointAxis1)")
             fields.append("scrollPointAxis2=\(pointAxis2)")
-            fields.append("accumulatedScrollX=\(format(accumulatedScrollX))")
-            fields.append("accumulatedScrollY=\(format(accumulatedScrollY))")
+            fields.append("accumulatedScrollX=\(format(gestureState.accumulatedScrollX))")
+            fields.append("accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
         }
 
         logger.log(fields.joined(separator: " "))

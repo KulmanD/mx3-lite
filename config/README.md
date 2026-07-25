@@ -10,6 +10,16 @@ It has no telemetry, no network access, no auto update, and no GUI. It only runs
 swift build -c release
 ```
 
+### Development tests
+
+The repository contains focused unit tests for config validation, gesture state, scroll smoothing, and worker identity handling:
+
+```sh
+swift test
+```
+
+Tests are development-only. They are not linked into the release executable, installed by `scripts/install.sh`, started by `mxmaster on`, or included in the lightweight sharing ZIP.
+
 The binary is created at:
 
 ```sh

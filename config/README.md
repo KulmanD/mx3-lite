@@ -44,6 +44,12 @@ This removes `/usr/local/bin/mxmaster` only. It does not remove the project, con
 
 No launch agent is installed. Nothing starts automatically on login.
 
+## Performance
+
+Normal mode is event-driven and has no polling loop or periodic timer. Pointer-movement delivery is enabled only while the gesture button is held; button and scroll handling remain available when required by the config. Development profiling found zero measurable CPU growth during a verified strict-idle interval and a stable low-single-digit MiB physical footprint.
+
+See the [performance and stability report](../docs/PERFORMANCE.md) for the measurement method, controlled before/after results, lifecycle stress test, and hardware-dependent checks that could not be repeated during the profiling session.
+
 ## Sharing / installing on another Mac
 
 To share this project with another Mac, copy the whole project folder, not only the wrapper.

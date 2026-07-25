@@ -3,6 +3,52 @@ import XCTest
 @testable import MX3Lite
 
 final class GestureStateTests: XCTestCase {
+    func testNormalEventTypesSeparateContinuousMovementFromPrimaryEvents() {
+        var config = AppConfig.default
+        config.scrollTransformMode = .mxMasterOnly
+        let mapper = GestureMapper(
+            config: config,
+            logger: DebugLogger(enabled: false),
+            liveEventDebug: false,
+            mxMasterRegistry: MXMasterDeviceRegistry(logger: DebugLogger(enabled: false), debug: false)
+        )
+
+        XCTAssertEqual(mapper.primaryEventTypes, [.otherMouseDown, .otherMouseUp, .scrollWheel])
+        XCTAssertEqual(mapper.movementEventTypes, [.mouseMoved, .otherMouseDragged])
+    }
+
+    func testMapperSignalsMovementTapForGestureHold() throws {
+        let logger = DebugLogger(enabled: false)
+        let mapper = GestureMapper(
+            config: AppConfig.default,
+            logger: logger,
+            liveEventDebug: false,
+            mxMasterRegistry: MXMasterDeviceRegistry(logger: logger, debug: false)
+        )
+        var activityChanges: [Bool] = []
+        mapper.onGestureActivityChanged = { activityChanges.append($0) }
+
+        let down = try XCTUnwrap(CGEvent(
+            mouseEventSource: nil,
+            mouseType: .otherMouseDown,
+            mouseCursorPosition: .zero,
+            mouseButton: .center
+        ))
+        down.setIntegerValueField(.mouseEventButtonNumber, value: 5)
+        XCTAssertTrue(mapper.handle(type: .otherMouseDown, event: down))
+
+        let up = try XCTUnwrap(CGEvent(
+            mouseEventSource: nil,
+            mouseType: .otherMouseUp,
+            mouseCursorPosition: .zero,
+            mouseButton: .center
+        ))
+        up.setIntegerValueField(.mouseEventButtonNumber, value: 5)
+        XCTAssertTrue(mapper.handle(type: .otherMouseUp, event: up))
+
+        XCTAssertEqual(activityChanges, [true, false])
+    }
+
     func testHorizontalDirectionIsInvertedWhenConfigured() {
         var left = GestureState()
         left.begin(at: .zero)

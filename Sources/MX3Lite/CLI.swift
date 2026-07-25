@@ -350,16 +350,23 @@ struct CLI {
         }
 
         let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: debug, mxMasterRegistry: mxMasterRegistry)
-        let eventTap = try MouseEventTap(mode: .map(mapper), logger: logger)
+        let eventTap = try MouseEventTap(
+            mode: .map(mapper),
+            eventTypes: debug ? nil : mapper.primaryEventTypes,
+            logger: logger
+        )
+        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: !debug, logger: logger)
 
         let signalController = SignalController()
         signalController.start {
             logger.log("foreground worker stopping")
             eventTap.stop()
+            movementEventTap?.stop()
             mxMasterRegistry.stop()
             CFRunLoopStop(CFRunLoopGetMain())
         }
 
+        movementEventTap?.start(enabled: false)
         eventTap.start()
         CFRunLoopRun()
     }
@@ -392,19 +399,42 @@ struct CLI {
         }
 
         let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: false, mxMasterRegistry: mxMasterRegistry)
-        let eventTap = try MouseEventTap(mode: .map(mapper), logger: logger)
+        let eventTap = try MouseEventTap(mode: .map(mapper), eventTypes: mapper.primaryEventTypes, logger: logger)
+        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: true, logger: logger)
 
         let signalController = SignalController()
         signalController.start {
             logger.log("worker stopping")
             eventTap.stop()
+            movementEventTap?.stop()
             mxMasterRegistry.stop()
             lifecycle.removeMetadata(ifOwnedBy: workerIdentity)
             CFRunLoopStop(CFRunLoopGetMain())
         }
 
+        movementEventTap?.start(enabled: false)
         eventTap.start()
         CFRunLoopRun()
+    }
+
+    private func makeMovementEventTap(
+        for mapper: GestureMapper,
+        shouldCreate: Bool,
+        logger: DebugLogger
+    ) throws -> MouseEventTap? {
+        guard shouldCreate, !mapper.movementEventTypes.isEmpty else {
+            return nil
+        }
+
+        let movementEventTap = try MouseEventTap(
+            mode: .map(mapper),
+            eventTypes: mapper.movementEventTypes,
+            logger: logger
+        )
+        mapper.onGestureActivityChanged = { [weak movementEventTap] isActive in
+            movementEventTap?.setEnabled(isActive)
+        }
+        return movementEventTap
     }
 
     private func currentLivePID() throws -> pid_t? {

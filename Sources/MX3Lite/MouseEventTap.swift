@@ -41,38 +41,48 @@ enum MouseEventTapMode {
 
 final class MouseEventTap {
     private let mode: MouseEventTapMode
+    private let configuredEventTypes: [CGEventType]
     private let logger: DebugLogger?
     private var machPort: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var isStarted = false
+    private var shouldBeEnabled = false
     private var recoveryMessagePrinted = false
 
-    init(mode: MouseEventTapMode, logger: DebugLogger? = nil) throws {
+    init(mode: MouseEventTapMode, eventTypes: [CGEventType]? = nil, logger: DebugLogger? = nil) throws {
         self.mode = mode
+        self.configuredEventTypes = eventTypes ?? mode.eventTypes
         self.logger = logger
         try createTap()
     }
 
-    func start() {
+    func start(enabled: Bool = true) {
         guard let runLoopSource else {
             return
         }
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        if let machPort {
-            CGEvent.tapEnable(tap: machPort, enable: true)
+        isStarted = true
+        setEnabled(enabled)
+    }
+
+    func setEnabled(_ enabled: Bool) {
+        shouldBeEnabled = enabled
+        guard isStarted, let machPort else {
+            return
         }
+        CGEvent.tapEnable(tap: machPort, enable: enabled)
     }
 
     func stop() {
-        if let machPort {
-            CGEvent.tapEnable(tap: machPort, enable: false)
-        }
+        setEnabled(false)
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         }
+        isStarted = false
     }
 
     private func createTap() throws {
-        let eventTypes = mode.eventTypes
+        let eventTypes = configuredEventTypes
         guard !eventTypes.isEmpty else {
             throw CLIError("no mouse or scroll events are enabled by config")
         }
@@ -102,10 +112,10 @@ final class MouseEventTap {
 
     fileprivate func handle(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let machPort {
+            if shouldBeEnabled, let machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
+                logTapRecovery(type: type)
             }
-            logTapRecovery(type: type)
             return Unmanaged.passUnretained(event)
         }
 

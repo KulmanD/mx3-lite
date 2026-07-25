@@ -8,6 +8,7 @@ final class GestureMapper {
     private let mxMasterRegistry: MXMasterDeviceRegistry
     private let scrollTransformer = ScrollTransformer()
     private var gestureState = GestureState()
+    var onGestureActivityChanged: ((Bool) -> Void)?
 
     init(config: AppConfig, logger: DebugLogger, liveEventDebug: Bool, mxMasterRegistry: MXMasterDeviceRegistry) {
         self.config = config
@@ -33,13 +34,13 @@ final class GestureMapper {
             ]
         }
 
+        return primaryEventTypes + movementEventTypes
+    }
+
+    var primaryEventTypes: [CGEventType] {
         var types: [CGEventType] = []
         if config.buttons.gesture != nil || config.buttons.back != nil || config.buttons.forward != nil {
             types.append(contentsOf: [.otherMouseDown, .otherMouseUp])
-        }
-
-        if config.buttons.gesture != nil {
-            types.append(contentsOf: [.mouseMoved, .otherMouseDragged])
         }
 
         if config.scrollTransformMode != .disabled {
@@ -47,6 +48,10 @@ final class GestureMapper {
         }
 
         return types
+    }
+
+    var movementEventTypes: [CGEventType] {
+        config.buttons.gesture == nil ? [] : [.mouseMoved, .otherMouseDragged]
     }
 
     func handle(type: CGEventType, event: CGEvent) -> Bool {
@@ -77,6 +82,7 @@ final class GestureMapper {
         switch GestureState.buttonDownDecision(button: button, buttons: config.buttons, gestureActive: gestureState.isActive) {
         case .beginGesture:
             gestureState.begin(at: event.location)
+            onGestureActivityChanged?(true)
             logger.log("gesture start button=\(button) startLocation=\(event.location.compactDescription)")
             return true
         case .suppressSideButton:
@@ -97,6 +103,7 @@ final class GestureMapper {
         if matches(button, config.buttons.gesture) {
             logger.log("gesture end button=\(button) final accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
             gestureState.end()
+            onGestureActivityChanged?(false)
             return true
         }
 

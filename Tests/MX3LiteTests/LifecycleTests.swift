@@ -52,4 +52,41 @@ final class LifecycleTests: XCTestCase {
             inspectedIdentity: nil
         ))
     }
+
+    func testReadOnlyDiagnosisDistinguishesRunningStaleAndMalformedMetadata() {
+        XCTAssertEqual(
+            WorkerLifecycle.diagnose(
+                .current(identity),
+                expectedExecutablePath: identity.executablePath,
+                inspectedIdentity: identity
+            ),
+            .running(identity, legacyMetadata: false)
+        )
+
+        XCTAssertEqual(
+            WorkerLifecycle.diagnose(
+                .legacyPID(identity.pid),
+                expectedExecutablePath: identity.executablePath,
+                inspectedIdentity: identity
+            ),
+            .running(identity, legacyMetadata: true)
+        )
+
+        guard case .stale = WorkerLifecycle.diagnose(
+            .current(identity),
+            expectedExecutablePath: identity.executablePath,
+            inspectedIdentity: nil
+        ) else {
+            return XCTFail("missing live process should be diagnosed as stale")
+        }
+
+        XCTAssertEqual(
+            WorkerLifecycle.diagnose(
+                .invalid,
+                expectedExecutablePath: identity.executablePath,
+                inspectedIdentity: nil
+            ),
+            .malformedMetadata
+        )
+    }
 }

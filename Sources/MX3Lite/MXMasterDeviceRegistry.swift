@@ -31,6 +31,11 @@ struct MXMasterClassification {
     let recentSignalAgeMs: Double?
 }
 
+struct MXMasterDeviceSnapshot {
+    let devices: [MXMasterDeviceInfo]
+    let openResult: IOReturn
+}
+
 final class MXMasterDeviceRegistry {
     private static let logitechVendorID = 0x046D
     private let logger: DebugLogger
@@ -42,6 +47,38 @@ final class MXMasterDeviceRegistry {
     init(logger: DebugLogger, debug: Bool) {
         self.logger = logger
         self.debug = debug
+    }
+
+    static func connectedDeviceSnapshot() -> MXMasterDeviceSnapshot {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        let matching: [String: Any] = [
+            kIOHIDVendorIDKey as String: logitechVendorID
+        ]
+        IOHIDManagerSetDeviceMatching(manager, matching as CFDictionary)
+
+        let openResult = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+        defer {
+            IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+        }
+
+        guard let deviceSet = IOHIDManagerCopyDevices(manager) else {
+            return MXMasterDeviceSnapshot(devices: [], openResult: openResult)
+        }
+
+        let count = CFSetGetCount(deviceSet)
+        guard count > 0 else {
+            return MXMasterDeviceSnapshot(devices: [], openResult: openResult)
+        }
+
+        var values = Array<UnsafeRawPointer?>(repeating: nil, count: count)
+        CFSetGetValues(deviceSet, &values)
+        let devices = values.compactMap { value -> MXMasterDeviceInfo? in
+            guard let value else {
+                return nil
+            }
+            return mxMasterInfo(for: unsafeBitCast(value, to: IOHIDDevice.self))
+        }
+        return MXMasterDeviceSnapshot(devices: devices, openResult: openResult)
     }
 
     func start() {

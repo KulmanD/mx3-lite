@@ -44,6 +44,10 @@ struct CLIError: Error {
     }
 }
 
+struct CLIExit: Error {
+    let exitCode: Int32
+}
+
 extension Array where Element == String {
     mutating func removeFlag(_ flag: String) -> Bool {
         guard let index = firstIndex(of: flag) else {

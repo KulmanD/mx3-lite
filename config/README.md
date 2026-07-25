@@ -125,6 +125,10 @@ mxmaster status
 # Config
 mxmaster config
 
+# Read-only readiness check
+mxmaster doctor
+mxmaster doctor --verbose
+
 # Debug
 mxmaster debug
 mxmaster scroll-debug
@@ -368,6 +372,7 @@ mxmaster status
 mxmaster debug
 mxmaster scroll-debug
 mxmaster config
+mxmaster doctor
 mxmaster test-left
 mxmaster test-right
 mxmaster test-up
@@ -383,6 +388,7 @@ mx3-lite toggle
 mx3-lite init-config
 mx3-lite --run-foreground --debug
 mx3-lite --print-config
+mx3-lite doctor
 mx3-lite --test-left
 mx3-lite --test-right
 mx3-lite --test-up
@@ -443,6 +449,15 @@ mxmaster config
 ```
 
 This prints the config path, whether the file existed or was created, the parsed values, and whether each value came from `config.json` or defaults.
+
+For installation and permission diagnostics:
+
+```sh
+mxmaster doctor
+mxmaster doctor --verbose
+```
+
+Doctor checks the wrapper target, executable, config parsing and sources, PID state, Accessibility, Input Monitoring, connected MX Master devices, and active behavior modes. It is read-only: it does not start or stop the worker, create or edit config, request permissions, post keys, transform scrolling, write logs, or access the network. The verbose form shows additional local paths and details.
 
 For scroll transform debugging:
 

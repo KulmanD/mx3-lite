@@ -25,15 +25,20 @@ final class LifecycleTests: XCTestCase {
         XCTAssertEqual(WorkerMetadataRecord.parse(Data("-1".utf8)), .invalid)
     }
 
-    func testIdentityMustMatchPathPIDAndStartTimeExactly() {
+    func testIdentityAcceptsCopiedHelperButStillRequiresExactLiveProcessIdentity() {
         XCTAssertTrue(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: identity.executablePath,
             inspectedIdentity: identity
         ))
-        XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
+        XCTAssertTrue(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: "/different/mx3-lite",
+            inspectedIdentity: identity
+        ))
+        XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
+            identity,
+            expectedExecutablePath: "/different/not-mx3-lite",
             inspectedIdentity: identity
         ))
         XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
@@ -50,6 +55,21 @@ final class LifecycleTests: XCTestCase {
             identity,
             expectedExecutablePath: identity.executablePath,
             inspectedIdentity: nil
+        ))
+    }
+
+    func testRecognizedWorkerPathRequiresTheExactHelperName() {
+        XCTAssertTrue(WorkerLifecycle.isRecognizedWorkerPath(
+            "/Applications/mx3-lite.app/Contents/Helpers/mx3-lite",
+            expectedExecutablePath: "/Users/test/project/.build/release/mx3-lite"
+        ))
+        XCTAssertFalse(WorkerLifecycle.isRecognizedWorkerPath(
+            "/Applications/other.app/Contents/Helpers/mx3-lite-copy",
+            expectedExecutablePath: "/Users/test/project/.build/release/mx3-lite"
+        ))
+        XCTAssertFalse(WorkerLifecycle.isRecognizedWorkerPath(
+            "",
+            expectedExecutablePath: "/Users/test/project/.build/release/mx3-lite"
         ))
     }
 

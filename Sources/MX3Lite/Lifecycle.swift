@@ -198,7 +198,10 @@ struct WorkerLifecycle {
     }
 
     func isAlive(_ identity: WorkerProcessIdentity) -> Bool {
-        guard identity.executablePath == expectedExecutablePath else {
+        guard WorkerLifecycle.isRecognizedWorkerPath(
+            identity.executablePath,
+            expectedExecutablePath: expectedExecutablePath
+        ) else {
             return false
         }
         return inspectProcess(pid: identity.pid) == identity
@@ -219,9 +222,20 @@ struct WorkerLifecycle {
         expectedExecutablePath: String,
         inspectedIdentity: WorkerProcessIdentity?
     ) -> Bool {
-        !expectedExecutablePath.isEmpty
-            && metadata.executablePath == expectedExecutablePath
+        isRecognizedWorkerPath(metadata.executablePath, expectedExecutablePath: expectedExecutablePath)
             && inspectedIdentity == metadata
+    }
+
+    static func isRecognizedWorkerPath(_ path: String, expectedExecutablePath: String) -> Bool {
+        guard !path.isEmpty, !expectedExecutablePath.isEmpty else {
+            return false
+        }
+        if path == expectedExecutablePath {
+            return true
+        }
+
+        return URL(fileURLWithPath: path).lastPathComponent == "mx3-lite"
+            && URL(fileURLWithPath: expectedExecutablePath).lastPathComponent == "mx3-lite"
     }
 
     static func diagnose(
@@ -236,8 +250,8 @@ struct WorkerLifecycle {
             guard let inspectedIdentity else {
                 return .stale("recorded process is not running")
             }
-            guard metadata.executablePath == expectedExecutablePath else {
-                return .stale("recorded executable does not match this mx3-lite binary")
+            guard isRecognizedWorkerPath(metadata.executablePath, expectedExecutablePath: expectedExecutablePath) else {
+                return .stale("recorded executable is not a recognized mx3-lite helper")
             }
             guard inspectedIdentity == metadata else {
                 return .stale("recorded process identity no longer matches the live process")
@@ -247,7 +261,7 @@ struct WorkerLifecycle {
             guard let inspectedIdentity else {
                 return .stale("legacy pid \(pid) is not running")
             }
-            guard inspectedIdentity.executablePath == expectedExecutablePath else {
+            guard isRecognizedWorkerPath(inspectedIdentity.executablePath, expectedExecutablePath: expectedExecutablePath) else {
                 return .stale("legacy pid \(pid) belongs to a different executable")
             }
             return .running(inspectedIdentity, legacyMetadata: true)

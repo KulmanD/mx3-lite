@@ -1,0 +1,386 @@
+import Darwin
+import Foundation
+
+struct CLI {
+    private let paths = AppPaths()
+
+    func run() throws {
+        var args = Array(CommandLine.arguments.dropFirst())
+        let executableName = URL(fileURLWithPath: CommandLine.arguments.first ?? "mx3-lite").lastPathComponent
+
+        if executableName == "mx3-on" {
+            try start(debug: args.removeFlag("--debug"))
+            return
+        }
+
+        if executableName == "mx3-off" {
+            try stop()
+            return
+        }
+
+        if executableName == "mx3-toggle" {
+            try toggle(debug: args.removeFlag("--debug"))
+            return
+        }
+
+        if executableName == "mx3-status" {
+            try status()
+            return
+        }
+
+        if args.isEmpty {
+            try printHelp()
+            return
+        }
+
+        let debug = args.removeFlag("--debug")
+        let command = args.removeFirst()
+
+        switch command {
+        case "--inspect", "inspect":
+            try inspect()
+        case "--run-foreground", "run-foreground":
+            try runForeground(debug: debug)
+        case "--debug-scroll", "debug-scroll":
+            try debugScroll()
+        case "--test-left", "test-left":
+            try testAction(.left)
+        case "--test-right", "test-right":
+            try testAction(.right)
+        case "--test-up", "test-up":
+            try testAction(.up)
+        case "--print-config", "print-config":
+            try printConfig()
+        case "on":
+            try start(debug: debug)
+        case "off":
+            try stop()
+        case "toggle":
+            try toggle(debug: debug)
+        case "status":
+            try status()
+        case "init-config":
+            try initConfig()
+        case "run":
+            try runWorker(debug: debug)
+        case "config-path":
+            print(paths.configFile.path)
+        case "--help", "-h", "help":
+            try printHelp()
+        default:
+            throw CLIError("unknown command: \(command)", exitCode: 64)
+        }
+    }
+
+    private func printHelp() throws {
+        print("""
+        mx3-lite
+
+        Usage:
+          mx3-lite --inspect        Print mouse button, movement, and scroll events
+          mx3-lite --run-foreground --debug
+                                  Run gesture mapping in the foreground with live event logs
+          mx3-lite --debug-scroll  Run foreground scroll transform debugger
+          mx3-lite --test-left     Directly post Ctrl+Left using actionBackend
+          mx3-lite --test-right    Directly post Ctrl+Right using actionBackend
+          mx3-lite --test-up       Directly post Ctrl+Up using actionBackend
+          mx3-lite --print-config  Print parsed config values and sources
+          mx3-lite on [--debug]     Start the gesture worker
+          mx3-lite off              Stop the gesture worker
+          mx3-lite toggle [--debug] Toggle the gesture worker
+          mx3-lite status           Print worker status
+          mx3-lite init-config      Create config.json if missing
+          mx3-lite config-path      Print config.json path
+
+        Symlink helpers are supported:
+          mx3-on, mx3-off, mx3-toggle, mx3-status
+        """)
+    }
+
+    private func inspect() throws {
+        try paths.ensureDirectories()
+        print("mx3-lite inspect mode")
+        print("Move the mouse, scroll, and press MX Master 3 buttons. Press Ctrl-C to exit.")
+        print("Use the CGEvent button numbers from this output in \(paths.configFile.path).")
+
+        let eventTap = try MouseEventTap(mode: .inspect)
+        let hidInspector = HIDInspector()
+        hidInspector.start()
+
+        let signalController = SignalController()
+        signalController.start {
+            print("inspect stopped")
+            eventTap.stop()
+            hidInspector.stop()
+            CFRunLoopStop(CFRunLoopGetMain())
+        }
+
+        eventTap.start()
+        CFRunLoopRun()
+    }
+
+    private func start(debug: Bool) throws {
+        try paths.ensureDirectories()
+
+        if let pid = try currentLivePID() {
+            print("mx3-lite is already running (pid \(pid))")
+            return
+        }
+
+        try removeStalePIDFile()
+
+        guard let executableURL = Bundle.main.executableURL else {
+            throw CLIError("could not resolve executable path")
+        }
+
+        let process = Process()
+        process.executableURL = executableURL.resolvingSymlinksInPath()
+        process.arguments = debug ? ["run", "--debug"] : ["run"]
+        process.standardInput = FileHandle(forReadingAtPath: "/dev/null")
+
+        if debug {
+            try paths.ensureLogDirectory()
+            FileManager.default.createFile(atPath: paths.logFile.path, contents: nil)
+            guard let logHandle = try? FileHandle(forWritingTo: paths.logFile) else {
+                throw CLIError("could not open debug log at \(paths.logFile.path)")
+            }
+            try logHandle.seekToEnd()
+            process.standardOutput = logHandle
+            process.standardError = logHandle
+        } else {
+            process.standardOutput = FileHandle(forWritingAtPath: "/dev/null")
+            process.standardError = FileHandle(forWritingAtPath: "/dev/null")
+        }
+
+        try process.run()
+        try "\(process.processIdentifier)\n".write(to: paths.pidFile, atomically: true, encoding: .utf8)
+
+        usleep(150_000)
+        if !processExists(process.processIdentifier) {
+            try removeStalePIDFile()
+            throw CLIError("worker exited immediately. Check macOS permissions or run mx3-lite run --debug.")
+        }
+
+        print("mx3-lite started (pid \(process.processIdentifier))")
+        if debug {
+            print("debug log: \(paths.logFile.path)")
+        }
+    }
+
+    private func stop() throws {
+        guard let pid = try readPID() else {
+            try removeStalePIDFile()
+            print("mx3-lite is stopped")
+            return
+        }
+
+        if !processExists(pid) {
+            try removeStalePIDFile()
+            print("mx3-lite is stopped")
+            return
+        }
+
+        if Darwin.kill(pid, SIGTERM) != 0 {
+            throw CLIError("failed to stop pid \(pid): \(String(cString: strerror(errno)))")
+        }
+
+        let deadline = Date().addingTimeInterval(2.0)
+        while processExists(pid), Date() < deadline {
+            usleep(50_000)
+        }
+
+        if processExists(pid) {
+            _ = Darwin.kill(pid, SIGKILL)
+        }
+
+        try removeStalePIDFile()
+        print("mx3-lite stopped")
+    }
+
+    private func toggle(debug: Bool) throws {
+        if let _ = try currentLivePID() {
+            try stop()
+        } else {
+            try start(debug: debug)
+        }
+    }
+
+    private func status() throws {
+        if let pid = try currentLivePID() {
+            print("mx3-lite is running (pid \(pid))")
+        } else {
+            try removeStalePIDFile()
+            print("mx3-lite is stopped")
+        }
+    }
+
+    private func initConfig() throws {
+        try paths.ensureDirectories()
+        _ = try ConfigStore(paths: paths).loadOrCreate()
+        print(paths.configFile.path)
+    }
+
+    private func testAction(_ direction: ArrowDirection) throws {
+        try paths.ensureDirectories()
+        let loadedConfig = try ConfigStore(paths: paths).loadOrCreateWithSources()
+        let logger = DebugLogger(enabled: true)
+
+        print("configPath: \(paths.configFile.path)")
+        print("actionBackend: \(loadedConfig.config.actionBackend.rawValue) source=\(loadedConfig.sources.actionBackend)")
+        print("posting test-\(direction.label)")
+        KeySender.sendControlArrow(
+            direction,
+            backend: loadedConfig.config.actionBackend,
+            logger: logger,
+            waitForSystemEvents: true
+        )
+    }
+
+    private func printConfig() throws {
+        try paths.ensureDirectories()
+        let loadedConfig = try ConfigStore(paths: paths).loadOrCreateWithSources()
+        ConfigPrinter.printLoadedConfig(loadedConfig, path: paths.configFile)
+    }
+
+    private func debugScroll() throws {
+        try paths.ensureDirectories()
+
+        if let existingPID = try currentLivePID(), existingPID != getpid() {
+            throw CLIError("mx3-lite is already running (pid \(existingPID)); stop it before scroll debugging")
+        }
+
+        let loadedConfig = try ConfigStore(paths: paths).loadOrCreateWithSources()
+        let logger = DebugLogger(enabled: true)
+
+        print("mx3-lite scroll debug mode")
+        print("config: \(paths.configFile.path)")
+        print("Press Ctrl-C to exit.")
+
+        let mxMasterRegistry = MXMasterDeviceRegistry(logger: logger, debug: true)
+        mxMasterRegistry.start()
+
+        let debugger = ScrollDebugger(config: loadedConfig.config, logger: logger, mxMasterRegistry: mxMasterRegistry)
+        let eventTap = try MouseEventTap(mode: .debugScroll(debugger), logger: logger)
+
+        let signalController = SignalController()
+        signalController.start {
+            logger.log("scroll debugger stopping")
+            eventTap.stop()
+            mxMasterRegistry.stop()
+            CFRunLoopStop(CFRunLoopGetMain())
+        }
+
+        eventTap.start()
+        CFRunLoopRun()
+    }
+
+    private func runForeground(debug: Bool) throws {
+        try paths.ensureDirectories()
+
+        if let existingPID = try currentLivePID(), existingPID != getpid() {
+            throw CLIError("mx3-lite is already running (pid \(existingPID)); stop it before foreground debugging")
+        }
+
+        let configStore = ConfigStore(paths: paths)
+        let config = try configStore.loadOrCreate()
+        let logger = DebugLogger(enabled: debug)
+
+        print("mx3-lite foreground mode")
+        print("config: \(paths.configFile.path)")
+        print("debug events: \(debug ? "enabled" : "disabled")")
+        print("Press Ctrl-C to exit.")
+
+        let mxMasterRegistry = MXMasterDeviceRegistry(logger: logger, debug: debug)
+        if config.needsMXMasterRegistry || debug {
+            mxMasterRegistry.start()
+        }
+
+        let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: debug, mxMasterRegistry: mxMasterRegistry)
+        let eventTap = try MouseEventTap(mode: .map(mapper), logger: logger)
+
+        let signalController = SignalController()
+        signalController.start {
+            logger.log("foreground worker stopping")
+            eventTap.stop()
+            mxMasterRegistry.stop()
+            CFRunLoopStop(CFRunLoopGetMain())
+        }
+
+        eventTap.start()
+        CFRunLoopRun()
+    }
+
+    private func runWorker(debug: Bool) throws {
+        try paths.ensureDirectories()
+
+        if let existingPID = try currentLivePID(), existingPID != getpid() {
+            throw CLIError("mx3-lite is already running (pid \(existingPID))")
+        }
+
+        let configStore = ConfigStore(paths: paths)
+        let config = try configStore.loadOrCreate()
+        try "\(getpid())\n".write(to: paths.pidFile, atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: paths.pidFile)
+        }
+
+        let logger = DebugLogger(enabled: debug)
+        logger.log("worker started pid=\(getpid()) config=\(paths.configFile.path)")
+
+        if config.buttons.gesture == nil && config.buttons.back == nil && config.buttons.forward == nil {
+            logger.log("no buttons configured; run mx3-lite --inspect, then edit config.json")
+        }
+
+        let mxMasterRegistry = MXMasterDeviceRegistry(logger: logger, debug: debug)
+        if config.needsMXMasterRegistry || debug {
+            mxMasterRegistry.start()
+        }
+
+        let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: false, mxMasterRegistry: mxMasterRegistry)
+        let eventTap = try MouseEventTap(mode: .map(mapper), logger: logger)
+
+        let signalController = SignalController()
+        signalController.start {
+            logger.log("worker stopping")
+            eventTap.stop()
+            mxMasterRegistry.stop()
+            try? FileManager.default.removeItem(at: paths.pidFile)
+            CFRunLoopStop(CFRunLoopGetMain())
+        }
+
+        eventTap.start()
+        CFRunLoopRun()
+    }
+
+    private func currentLivePID() throws -> pid_t? {
+        guard let pid = try readPID() else {
+            return nil
+        }
+        return processExists(pid) ? pid : nil
+    }
+
+    private func readPID() throws -> pid_t? {
+        guard FileManager.default.fileExists(atPath: paths.pidFile.path) else {
+            return nil
+        }
+
+        let raw = try String(contentsOf: paths.pidFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let pid = pid_t(raw), pid > 0 else {
+            return nil
+        }
+        return pid
+    }
+
+    private func processExists(_ pid: pid_t) -> Bool {
+        if Darwin.kill(pid, 0) == 0 {
+            return true
+        }
+        return errno == EPERM
+    }
+
+    private func removeStalePIDFile() throws {
+        if FileManager.default.fileExists(atPath: paths.pidFile.path) {
+            try FileManager.default.removeItem(at: paths.pidFile)
+        }
+    }
+}

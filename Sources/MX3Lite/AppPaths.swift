@@ -22,6 +22,10 @@ struct AppPaths {
         appSupportDirectory.appendingPathComponent("mx3-lite.pid")
     }
 
+    var lifecycleLockFile: URL {
+        appSupportDirectory.appendingPathComponent("mx3-lite.lock")
+    }
+
     var logFile: URL {
         logDirectory.appendingPathComponent("mx3-lite.log")
     }

@@ -381,6 +381,8 @@ mx3-lite --debug-scroll
 
 When `mxmaster off` succeeds, the worker process is terminated and no `mx3-lite` worker remains running.
 
+Lifecycle commands are serialized with a local file lock to prevent duplicate workers. The PID metadata also records the worker executable path and process start time; `status` and `off` revalidate that identity so stale or reused PIDs are never signaled as mx3-lite workers. Legacy numeric PID files are migrated only when the live process matches the installed mx3-lite executable.
+
 ## Mappings
 
 Each mapping is inactive if its required button ID is `null` or missing from `config.json`.

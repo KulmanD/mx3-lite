@@ -55,13 +55,11 @@ Do not share/build artifacts unless needed:
 
 Recommended sharing package:
 
-From the parent folder:
-
 ```sh
-zip -r mx3-lite.zip mx3-lite \
-  -x "mx3-lite/.build/*" \
-  -x "mx3-lite/.git/*"
+bash scripts/package.sh
 ```
+
+This creates `mx3-lite.zip` in the parent directory. The script validates the required project files and excludes `.build/`, `.git/`, `.swiftpm/`, `DerivedData/`, development-only `Tests/`, Xcode artifacts, and `.DS_Store` files. An existing ZIP is replaced only after the new archive passes verification.
 
 On the other Mac:
 
@@ -99,6 +97,9 @@ Helper commands:
 ```sh
 # Build
 swift build -c release
+
+# Create a lightweight sharing ZIP
+bash scripts/package.sh
 
 # Install wrapper
 bash scripts/install.sh

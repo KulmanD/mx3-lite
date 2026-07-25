@@ -11,11 +11,19 @@ required_paths=(
   ".gitignore"
   "Package.swift"
   "Sources"
+  "Sources/MX3AppSupport"
+  "Sources/MX3LiteApp"
+  "app/Info.plist"
+  "scripts/build-app.sh"
   "scripts/install.sh"
+  "scripts/install-app.sh"
+  "scripts/package-app.sh"
   "scripts/uninstall.sh"
+  "scripts/uninstall-app.sh"
   "config/README.md"
   "config/denis-config.json"
   "docs/PERFORMANCE.md"
+  "docs/APP_ARCHITECTURE.md"
 )
 
 for required_path in "${required_paths[@]}"; do
@@ -37,7 +45,9 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
     -x "$PROJECT_NAME/.swiftpm/*" \
     -x "$PROJECT_NAME/.github/*" \
     -x "$PROJECT_NAME/DerivedData/*" \
+    -x "$PROJECT_NAME/dist/*" \
     -x "$PROJECT_NAME/Tests/*" \
+    -x "$PROJECT_NAME/.mx3-lite-app-build.*/*" \
     -x "$PROJECT_NAME/*.xcodeproj/*" \
     -x "$PROJECT_NAME/*.xcworkspace/*" \
     -x "*/.DS_Store"
@@ -53,7 +63,7 @@ for required_path in "${required_paths[@]}"; do
   fi
 done
 
-if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.github|\.swiftpm|DerivedData|Tests)/|/\.DS_Store$" <<<"$archive_entries"; then
+if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.github|\.swiftpm|DerivedData|dist|Tests)/|^$PROJECT_NAME/\.mx3-lite-app-build\.|/\.DS_Store$" <<<"$archive_entries"; then
   echo "Package verification failed; an excluded path is present." >&2
   exit 1
 fi
@@ -62,4 +72,4 @@ mv -f "$TEMP_ZIP" "$OUTPUT_ZIP"
 
 echo "Created $OUTPUT_ZIP"
 echo "Included: Package.swift, Sources/, scripts/, config/, docs/, and .gitignore"
-echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, Tests/, Xcode artifacts, and .DS_Store"
+echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, dist/, Tests/, Xcode artifacts, and .DS_Store"

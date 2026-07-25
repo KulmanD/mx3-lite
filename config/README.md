@@ -44,6 +44,46 @@ This removes `/usr/local/bin/mxmaster` only. It does not remove the project, con
 
 No launch agent is installed. Nothing starts automatically on login.
 
+## Native macOS app
+
+Build the native SwiftUI control app and its bundled worker:
+
+```sh
+bash scripts/build-app.sh
+open dist/mx3-lite.app
+```
+
+The app provides manual Start/Stop, gesture and scroll settings, atomic config saving, restart-required state, read-only diagnostics, and links to the required macOS privacy panes. It has no telemetry, network access, updater, login item, launch agent, periodic status timer, or automatic worker start.
+
+Install the app to `~/Applications/mx3-lite.app` and update the terminal wrapper to use its bundled helper:
+
+```sh
+bash scripts/install-app.sh
+```
+
+The app installation itself does not need administrator access. Updating `/usr/local/bin/mxmaster` may ask for `sudo` in an interactive terminal. To install only the app and leave the current wrapper unchanged:
+
+```sh
+bash scripts/install-app.sh --skip-wrapper
+```
+
+To uninstall, first remove an app-targeting wrapper and then remove the app:
+
+```sh
+bash scripts/uninstall.sh
+bash scripts/uninstall-app.sh
+```
+
+The uninstall scripts preserve the user config. Nothing is configured to start at login.
+
+Create a standalone versioned app archive:
+
+```sh
+bash scripts/package-app.sh
+```
+
+Local app builds are ad-hoc signed. Public distribution without macOS Gatekeeper warnings requires a Developer ID Application certificate and Apple notarization; the repository does not pretend those credentials are present.
+
 ## Performance
 
 Normal mode is event-driven and has no polling loop or periodic timer. Pointer-movement delivery is enabled only while the gesture button is held; button and scroll handling remain available when required by the config. Development profiling found zero measurable CPU growth during a verified strict-idle interval and a stable low-single-digit MiB physical footprint.
@@ -58,10 +98,12 @@ Required project files/folders:
 
 - `Package.swift`
 - `Sources/`
+- `app/`
 - `scripts/`
 - `config/README.md`
 - `config/denis-config.json`
 - `docs/PERFORMANCE.md`
+- `docs/APP_ARCHITECTURE.md`
 - `.gitignore` if present
 
 Do not share/build artifacts unless needed:
@@ -76,7 +118,7 @@ Recommended sharing package:
 bash scripts/package.sh
 ```
 
-This creates `mx3-lite.zip` in the parent directory. The script validates the required project files and excludes `.build/`, `.git/`, `.github/`, `.swiftpm/`, `DerivedData/`, development-only `Tests/`, Xcode artifacts, and `.DS_Store` files. An existing ZIP is replaced only after the new archive passes verification.
+This creates `mx3-lite.zip` in the parent directory. The script validates the required project files and excludes `.build/`, `.git/`, `.github/`, `.swiftpm/`, `DerivedData/`, `dist/`, development-only `Tests/`, Xcode artifacts, and `.DS_Store` files. An existing ZIP is replaced only after the new archive passes verification.
 
 On the other Mac:
 
@@ -117,6 +159,13 @@ swift build -c release
 
 # Create a lightweight sharing ZIP
 bash scripts/package.sh
+
+# Build / install the native app
+bash scripts/build-app.sh
+bash scripts/install-app.sh
+
+# Create a standalone app ZIP
+bash scripts/package-app.sh
 
 # Install wrapper
 bash scripts/install.sh

@@ -51,6 +51,7 @@ struct ContentView: View {
             } label: {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
+            .accessibilityLabel("Refresh")
             .disabled(model.isBusy)
             .help("Refresh worker status and reload config")
 
@@ -62,16 +63,19 @@ struct ContentView: View {
                     systemImage: model.workerState.isRunning ? "stop.fill" : "play.fill"
                 )
             }
+            .accessibilityLabel(model.workerState.isRunning ? "Stop worker" : "Start worker")
             .buttonStyle(.borderedProminent)
             .disabled(model.isBusy || model.workerState == .loading)
+            .help(model.workerState.isRunning ? "Stop the mx3-lite worker" : "Start the mx3-lite worker")
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
     }
 
     private var overview: some View {
-        Form {
-            Section(header: Text("Worker")) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                SettingsSection(title: "Worker") {
                 Toggle("Keep gesture control running", isOn: Binding(
                     get: { model.workerState.isRunning },
                     set: { _ in model.toggleWorker() }
@@ -84,12 +88,15 @@ struct ContentView: View {
                             .foregroundColor(.orange)
                         Spacer()
                         Button("Restart now") { model.restartWorker() }
+                            .accessibilityLabel("Restart worker now")
                             .disabled(model.isBusy)
+                            .help("Restart the worker to apply saved config")
                     }
                 }
-            }
+                }
 
-            Section(header: Text("Keyboard actions")) {
+                Divider()
+                SettingsSection(title: "Keyboard actions") {
                 Picker("Action backend", selection: $model.settings.actionBackend) {
                     ForEach(AppActionBackend.allCases) { backend in
                         Text(backend.title).tag(backend)
@@ -98,26 +105,33 @@ struct ContentView: View {
                 Text("System Events remains the recommended backend for Spaces and Mission Control.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-            }
+                }
 
-            Section(header: Text("Config")) {
+                Divider()
+                SettingsSection(title: "Config") {
                 HStack {
                     Text(model.configURL.path)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .frame(maxWidth: 420, alignment: .leading)
                     Spacer()
                     Button("Reveal in Finder") { model.revealConfig() }
+                        .accessibilityLabel("Reveal config in Finder")
+                        .help("Show config.json in Finder")
+                }
                 }
             }
+            .frame(maxWidth: 620, alignment: .leading)
+            .padding(20)
         }
-        .padding(16)
     }
 
     private var gestures: some View {
-        Form {
-            Section(header: Text("Gesture button")) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                SettingsSection(title: "Gesture button") {
                 Stepper(value: $model.settings.threshold, in: 20...1000, step: 10) {
                     valueRow("Movement threshold", value: String(Int(model.settings.threshold)))
                 }
@@ -128,23 +142,27 @@ struct ContentView: View {
                         Text(action.title).tag(action)
                     }
                 }
-            }
+                }
 
-            Section(header: Text("Mouse button IDs")) {
+                Divider()
+                SettingsSection(title: "Mouse button IDs") {
                 OptionalButtonField(title: "Gesture", value: $model.settings.buttons.gesture)
                 OptionalButtonField(title: "Back", value: $model.settings.buttons.back)
                 OptionalButtonField(title: "Forward", value: $model.settings.buttons.forward)
                 Text("Leave a field empty to disable that mapping.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                }
             }
+            .frame(maxWidth: 620, alignment: .leading)
+            .padding(20)
         }
-        .padding(16)
     }
 
     private var scrolling: some View {
-        Form {
-            Section(header: Text("Device filtering")) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                SettingsSection(title: "Device filtering") {
                 Picker("Transform", selection: $model.settings.scrollTransformMode) {
                     ForEach(AppScrollTransformMode.allCases) { mode in
                         Text(mode.title).tag(mode)
@@ -159,18 +177,20 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
-            }
+                }
 
-            Section(header: Text("Response")) {
+                Divider()
+                SettingsSection(title: "Response") {
                 sliderRow("Multiplier", value: $model.settings.scrollMultiplier, range: 0.1...5, step: 0.1)
                 sliderRow("Acceleration", value: $model.settings.scrollAcceleration, range: 0.1...3, step: 0.1)
                 sliderRow("Ratchet multiplier", value: $model.settings.ratchetStepMultiplier, range: 0.1...5, step: 0.1)
                 Stepper(value: $model.settings.maxScrollStep, in: 1...100, step: 1) {
                     valueRow("Maximum step", value: String(Int(model.settings.maxScrollStep)))
                 }
-            }
+                }
 
-            Section(header: Text("Smoothing")) {
+                Divider()
+                SettingsSection(title: "Smoothing") {
                 Toggle("Smooth MX Master scrolling", isOn: $model.settings.smoothScroll)
                 Picker("Mode", selection: $model.settings.smoothScrollMode) {
                     ForEach(AppSmoothScrollMode.allCases) { mode in
@@ -184,9 +204,11 @@ struct ContentView: View {
                     .disabled(!model.settings.smoothScroll)
                 sliderRow("Free-spin damping", value: $model.settings.freeSpinDamping, range: 0...1, step: 0.05)
                     .disabled(!model.settings.smoothScroll)
+                }
             }
+            .frame(maxWidth: 620, alignment: .leading)
+            .padding(20)
         }
-        .padding(16)
     }
 
     private var diagnostics: some View {
@@ -197,9 +219,15 @@ struct ContentView: View {
                 } label: {
                     Label("Run diagnostics", systemImage: "stethoscope")
                 }
+                .accessibilityLabel("Run diagnostics")
                 .disabled(model.isBusy)
+                .help("Run read-only installation and permission checks")
                 Button("Accessibility settings") { model.openAccessibilitySettings() }
+                    .accessibilityLabel("Open Accessibility settings")
+                    .help("Open the macOS Accessibility privacy pane")
                 Button("Input Monitoring settings") { model.openInputMonitoringSettings() }
+                    .accessibilityLabel("Open Input Monitoring settings")
+                    .help("Open the macOS Input Monitoring privacy pane")
                 Spacer()
             }
 
@@ -230,8 +258,10 @@ struct ContentView: View {
             }
             Spacer()
             Button("Revert") { model.discardChanges() }
+                .accessibilityLabel("Revert config changes")
                 .disabled(!model.hasUnsavedChanges || model.isBusy)
             Button("Save") { model.save() }
+                .accessibilityLabel("Save config")
                 .buttonStyle(.borderedProminent)
                 .disabled(!model.hasUnsavedChanges || !model.validationWarnings.isEmpty || model.isBusy)
         }
@@ -270,6 +300,24 @@ struct ContentView: View {
                 .monospacedDigit()
                 .frame(width: 48, alignment: .trailing)
         }
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    private let content: () -> Content
+
+    init(title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title).font(.headline)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WRAPPER="/usr/local/bin/mxmaster"
+WRAPPER="${MX3_MASTER_WRAPPER:-/usr/local/bin/mxmaster}"
 
 if [[ ! -e "$WRAPPER" ]]; then
   echo "mxmaster wrapper is not installed at $WRAPPER"

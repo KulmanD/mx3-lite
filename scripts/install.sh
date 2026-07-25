@@ -45,6 +45,7 @@ Usage:
   mxmaster debug
   mxmaster scroll-debug
   mxmaster config
+  mxmaster doctor
   mxmaster test-left
   mxmaster test-right
   mxmaster test-up
@@ -83,6 +84,9 @@ case "\$cmd" in
     ;;
   config)
     exec "\$MX3_LITE" --print-config "\$@"
+    ;;
+  doctor)
+    exec "\$MX3_LITE" doctor "\$@"
     ;;
   test-left)
     exec "\$MX3_LITE" --test-left "\$@"

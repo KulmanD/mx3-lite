@@ -87,4 +87,17 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(loaded.sources.gestureButton, "default")
         XCTAssertTrue(loaded.warnings.isEmpty)
     }
+
+    func testReadOnlyConfigLoadDoesNotCreateMissingFile() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let paths = AppPaths(home: home)
+        let loaded = try ConfigStore(paths: paths).loadExistingWithSources()
+
+        XCTAssertNil(loaded)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: paths.appSupportDirectory.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: paths.configFile.path))
+    }
 }

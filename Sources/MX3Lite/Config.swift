@@ -21,6 +21,16 @@ struct ConfigStore {
             )
         }
 
+        guard let loadedConfig = try loadExistingWithSources() else {
+            throw CLIError("config.json disappeared while reading (paths.configFile.path)")
+        }
+        return loadedConfig
+    }
+
+    func loadExistingWithSources() throws -> LoadedConfig? {
+        guard FileManager.default.fileExists(atPath: paths.configFile.path) else {
+            return nil
+        }
         let data = try Data(contentsOf: paths.configFile)
         do {
             let config = try JSONDecoder().decode(AppConfig.self, from: data)

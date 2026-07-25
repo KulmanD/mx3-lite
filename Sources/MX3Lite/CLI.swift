@@ -55,6 +55,12 @@ struct CLI {
             try testAction(.up)
         case "--print-config", "print-config":
             try printConfig()
+        case "--doctor", "doctor":
+            let verbose = args.removeFlag("--verbose")
+            guard args.isEmpty else {
+                throw CLIError("doctor accepts only --verbose", exitCode: 64)
+            }
+            try doctor(verbose: verbose)
         case "on":
             try start(debug: debug)
         case "off":
@@ -89,6 +95,8 @@ struct CLI {
           mx3-lite --test-right    Directly post Ctrl+Right using actionBackend
           mx3-lite --test-up       Directly post Ctrl+Up using actionBackend
           mx3-lite --print-config  Print parsed config values and sources
+          mx3-lite doctor [--verbose]
+                                  Run read-only installation and readiness checks
           mx3-lite on [--debug]     Start the gesture worker
           mx3-lite off              Stop the gesture worker
           mx3-lite toggle [--debug] Toggle the gesture worker
@@ -278,6 +286,14 @@ struct CLI {
         try paths.ensureDirectories()
         let loadedConfig = try ConfigStore(paths: paths).loadOrCreateWithSources()
         ConfigPrinter.printLoadedConfig(loadedConfig, path: paths.configFile)
+    }
+
+    private func doctor(verbose: Bool) throws {
+        let report = try DoctorRunner(paths: paths).report()
+        print(report.rendered(verbose: verbose))
+        if report.exitCode != 0 {
+            throw CLIExit(exitCode: Int32(report.exitCode))
+        }
     }
 
     private func debugScroll() throws {

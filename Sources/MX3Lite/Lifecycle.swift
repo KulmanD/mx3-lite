@@ -30,6 +30,13 @@ enum WorkerMetadataRecord: Equatable {
     }
 }
 
+enum WorkerLifecycleDiagnosis: Equatable {
+    case stopped
+    case running(WorkerProcessIdentity, legacyMetadata: Bool)
+    case stale(String)
+    case malformedMetadata
+}
+
 struct WorkerLifecycle {
     let paths: AppPaths
 
@@ -139,6 +146,30 @@ struct WorkerLifecycle {
         return metadata
     }
 
+    func diagnoseWorkerReadOnly() throws -> WorkerLifecycleDiagnosis {
+        guard FileManager.default.fileExists(atPath: paths.pidFile.path) else {
+            return .stopped
+        }
+
+        let data = try Data(contentsOf: paths.pidFile)
+        let record = WorkerMetadataRecord.parse(data)
+        let inspectedIdentity: WorkerProcessIdentity?
+        switch record {
+        case .current(let metadata):
+            inspectedIdentity = inspectProcess(pid: metadata.pid)
+        case .legacyPID(let pid):
+            inspectedIdentity = inspectProcess(pid: pid)
+        case .invalid:
+            inspectedIdentity = nil
+        }
+
+        return WorkerLifecycle.diagnose(
+            record,
+            expectedExecutablePath: expectedExecutablePath,
+            inspectedIdentity: inspectedIdentity
+        )
+    }
+
     func writeMetadata(_ identity: WorkerProcessIdentity) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -191,6 +222,36 @@ struct WorkerLifecycle {
         !expectedExecutablePath.isEmpty
             && metadata.executablePath == expectedExecutablePath
             && inspectedIdentity == metadata
+    }
+
+    static func diagnose(
+        _ record: WorkerMetadataRecord,
+        expectedExecutablePath: String,
+        inspectedIdentity: WorkerProcessIdentity?
+    ) -> WorkerLifecycleDiagnosis {
+        switch record {
+        case .invalid:
+            return .malformedMetadata
+        case .current(let metadata):
+            guard let inspectedIdentity else {
+                return .stale("recorded process is not running")
+            }
+            guard metadata.executablePath == expectedExecutablePath else {
+                return .stale("recorded executable does not match this mx3-lite binary")
+            }
+            guard inspectedIdentity == metadata else {
+                return .stale("recorded process identity no longer matches the live process")
+            }
+            return .running(metadata, legacyMetadata: false)
+        case .legacyPID(let pid):
+            guard let inspectedIdentity else {
+                return .stale("legacy pid \(pid) is not running")
+            }
+            guard inspectedIdentity.executablePath == expectedExecutablePath else {
+                return .stale("legacy pid \(pid) belongs to a different executable")
+            }
+            return .running(inspectedIdentity, legacyMetadata: true)
+        }
     }
 
     private func canonicalPath(_ path: String) -> String {

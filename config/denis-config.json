@@ -1,0 +1,25 @@
+{
+  "buttons": {
+    "back": 3,
+    "forward": 4,
+    "gesture": 5
+  },
+  "threshold": 220,
+  "downAction": "ctrlDown",
+  "invertY": false,
+  "invertDesktopGestureDirection": true,
+  "actionBackend": "systemEvents",
+  "scrollTransformMode": "mxMasterOnly",
+  "invertVerticalScroll": true,
+  "invertHorizontalScroll": false,
+  "scrollMultiplier": 1.0,
+  "smoothScroll": true,
+  "smoothScrollMode": "ema",
+  "smoothScrollFactor": 0.35,
+  "scrollDeadzone": 0,
+  "maxScrollStep": 5,
+  "scrollAcceleration": 1.0,
+  "freeSpinDamping": 0.75,
+  "ratchetStepMultiplier": 1.0,
+  "allowGlobalScrollTransform": false
+}

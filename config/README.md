@@ -1,8 +1,10 @@
 # mx3-lite
 
-`mx3-lite` is a native macOS Swift CLI for lightweight Logitech MX Master 3 gesture control without Logi Options+.
+`mx3-lite` is a native macOS Swift worker and optional SwiftUI control app for lightweight Logitech MX Master 3 gesture control without Logi Options+.
 
-It has no telemetry, no network access, no auto update, and no GUI. It only runs when started manually.
+It has no telemetry, no network access, no auto update, and no automatic startup. It only runs when started manually.
+
+For app-first installation and settings instructions, see the [non-technical user guide](../README.md).
 
 ## Build
 
@@ -96,6 +98,7 @@ To share this project with another Mac, copy the whole project folder, not only 
 
 Required project files/folders:
 
+- `README.md`
 - `Package.swift`
 - `Sources/`
 - `app/`

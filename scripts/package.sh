@@ -9,6 +9,7 @@ OUTPUT_ZIP="$PARENT_DIR/$PROJECT_NAME.zip"
 
 required_paths=(
   ".gitignore"
+  "README.md"
   "Package.swift"
   "Sources"
   "Sources/MX3AppSupport"
@@ -71,5 +72,5 @@ fi
 mv -f "$TEMP_ZIP" "$OUTPUT_ZIP"
 
 echo "Created $OUTPUT_ZIP"
-echo "Included: Package.swift, Sources/, scripts/, config/, docs/, and .gitignore"
+echo "Included: README.md, Package.swift, Sources/, scripts/, config/, docs/, and .gitignore"
 echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, dist/, Tests/, Xcode artifacts, and .DS_Store"

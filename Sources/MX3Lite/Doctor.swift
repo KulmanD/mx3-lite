@@ -105,7 +105,7 @@ enum WrapperInspector {
     }
 
     static func targetPath(in wrapper: String) -> String? {
-        for line in wrapper.split(whereSeparator: \Character.isNewline) {
+        for line in wrapper.split(whereSeparator: { $0.isNewline }) {
             let value = String(line)
             guard value.hasPrefix("MX3_LITE=\"") && value.hasSuffix("\"") else {
                 continue

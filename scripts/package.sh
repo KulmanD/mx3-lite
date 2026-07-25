@@ -15,6 +15,7 @@ required_paths=(
   "scripts/uninstall.sh"
   "config/README.md"
   "config/denis-config.json"
+  "docs/PERFORMANCE.md"
 )
 
 for required_path in "${required_paths[@]}"; do
@@ -34,6 +35,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
     -x "$PROJECT_NAME/.build/*" \
     -x "$PROJECT_NAME/.git/*" \
     -x "$PROJECT_NAME/.swiftpm/*" \
+    -x "$PROJECT_NAME/.github/*" \
     -x "$PROJECT_NAME/DerivedData/*" \
     -x "$PROJECT_NAME/Tests/*" \
     -x "$PROJECT_NAME/*.xcodeproj/*" \
@@ -51,7 +53,7 @@ for required_path in "${required_paths[@]}"; do
   fi
 done
 
-if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.swiftpm|DerivedData|Tests)/|/\.DS_Store$" <<<"$archive_entries"; then
+if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.github|\.swiftpm|DerivedData|Tests)/|/\.DS_Store$" <<<"$archive_entries"; then
   echo "Package verification failed; an excluded path is present." >&2
   exit 1
 fi
@@ -59,5 +61,5 @@ fi
 mv -f "$TEMP_ZIP" "$OUTPUT_ZIP"
 
 echo "Created $OUTPUT_ZIP"
-echo "Included: Package.swift, Sources/, scripts/, config/, and .gitignore"
-echo "Excluded: .build/, .git/, .swiftpm/, DerivedData/, Tests/, Xcode artifacts, and .DS_Store"
+echo "Included: Package.swift, Sources/, scripts/, config/, docs/, and .gitignore"
+echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, Tests/, Xcode artifacts, and .DS_Store"

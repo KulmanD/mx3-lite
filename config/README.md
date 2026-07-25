@@ -61,6 +61,7 @@ Required project files/folders:
 - `scripts/`
 - `config/README.md`
 - `config/denis-config.json`
+- `docs/PERFORMANCE.md`
 - `.gitignore` if present
 
 Do not share/build artifacts unless needed:
@@ -75,7 +76,7 @@ Recommended sharing package:
 bash scripts/package.sh
 ```
 
-This creates `mx3-lite.zip` in the parent directory. The script validates the required project files and excludes `.build/`, `.git/`, `.swiftpm/`, `DerivedData/`, development-only `Tests/`, Xcode artifacts, and `.DS_Store` files. An existing ZIP is replaced only after the new archive passes verification.
+This creates `mx3-lite.zip` in the parent directory. The script validates the required project files and excludes `.build/`, `.git/`, `.github/`, `.swiftpm/`, `DerivedData/`, development-only `Tests/`, Xcode artifacts, and `.DS_Store` files. An existing ZIP is replaced only after the new archive passes verification.
 
 On the other Mac:
 

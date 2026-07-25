@@ -2,7 +2,7 @@ import CoreGraphics
 import Darwin
 import Foundation
 
-enum ArrowDirection {
+enum ArrowDirection: Equatable {
     case left
     case right
     case up

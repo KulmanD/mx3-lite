@@ -11,6 +11,25 @@ struct WorkerProcessIdentity: Codable, Equatable {
     let startTimeMicroseconds: UInt64
 }
 
+enum WorkerMetadataRecord: Equatable {
+    case current(WorkerProcessIdentity)
+    case legacyPID(Int32)
+    case invalid
+
+    static func parse(_ data: Data) -> WorkerMetadataRecord {
+        if let metadata = try? JSONDecoder().decode(WorkerProcessIdentity.self, from: data) {
+            return .current(metadata)
+        }
+
+        let rawPID = String(decoding: data, as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let pid = Int32(rawPID), pid > 0 else {
+            return .invalid
+        }
+        return .legacyPID(pid)
+    }
+}
+
 struct WorkerLifecycle {
     let paths: AppPaths
 
@@ -88,25 +107,27 @@ struct WorkerLifecycle {
         let metadata: WorkerProcessIdentity
         let wasLegacyPID: Bool
 
-        if let decoded = try? JSONDecoder().decode(WorkerProcessIdentity.self, from: originalData) {
+        switch WorkerMetadataRecord.parse(originalData) {
+        case .current(let decoded):
             metadata = decoded
             wasLegacyPID = false
-        } else {
-            let rawPID = String(decoding: originalData, as: UTF8.self)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let legacyPID = Int32(rawPID), let inspected = inspectProcess(pid: legacyPID) else {
+        case .legacyPID(let legacyPID):
+            guard let inspected = inspectProcess(pid: legacyPID) else {
                 removeMetadataIfUnchanged(originalData)
                 return nil
             }
             metadata = inspected
             wasLegacyPID = true
+        case .invalid:
+            removeMetadataIfUnchanged(originalData)
+            return nil
         }
 
-        guard
-            !expectedExecutablePath.isEmpty,
-            metadata.executablePath == expectedExecutablePath,
-            inspectProcess(pid: metadata.pid) == metadata
-        else {
+        guard WorkerLifecycle.matchesWorkerIdentity(
+            metadata,
+            expectedExecutablePath: expectedExecutablePath,
+            inspectedIdentity: inspectProcess(pid: metadata.pid)
+        ) else {
             removeMetadataIfUnchanged(originalData)
             return nil
         }
@@ -160,6 +181,16 @@ struct WorkerLifecycle {
         if Darwin.kill(identity.pid, signal) != 0, errno != ESRCH {
             throw CLIError("failed to signal pid \(identity.pid): \(String(cString: strerror(errno)))")
         }
+    }
+
+    static func matchesWorkerIdentity(
+        _ metadata: WorkerProcessIdentity,
+        expectedExecutablePath: String,
+        inspectedIdentity: WorkerProcessIdentity?
+    ) -> Bool {
+        !expectedExecutablePath.isEmpty
+            && metadata.executablePath == expectedExecutablePath
+            && inspectedIdentity == metadata
     }
 
     private func canonicalPath(_ path: String) -> String {

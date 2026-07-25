@@ -133,6 +133,28 @@ final class ScrollTransformer {
     private var inertiaCarryAxis1 = 0.0
     private var inertiaCarryAxis2 = 0.0
 
+    #if DEBUG
+    var smoothingState: ScrollSmoothingState {
+        ScrollSmoothingState(
+            previousAxis1: previousAxis1,
+            previousAxis2: previousAxis2,
+            inertiaCarryAxis1: inertiaCarryAxis1,
+            inertiaCarryAxis2: inertiaCarryAxis2
+        )
+    }
+    #endif
+
+    static func shouldTransform(mode: ScrollTransformMode, classifiedAsMXMaster: Bool) -> Bool {
+        switch mode {
+        case .disabled:
+            return false
+        case .global:
+            return true
+        case .mxMasterOnly:
+            return classifiedAsMXMaster
+        }
+    }
+
     @discardableResult
     func apply(
         to event: CGEvent,
@@ -143,20 +165,24 @@ final class ScrollTransformer {
         let rawAxis1 = event.getIntegerValueField(.scrollWheelEventDeltaAxis1)
         let rawAxis2 = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
         let classification = captureDebug ? mxMasterRegistry.classify(scrollEvent: event) : nil
-        let shouldTransform: Bool
+        let classifiedAsMXMaster: Bool
         let passThroughReason: String
 
         switch config.scrollTransformMode {
         case .disabled:
-            shouldTransform = false
+            classifiedAsMXMaster = false
             passThroughReason = "scrollTransformMode disabled"
         case .global:
-            shouldTransform = true
+            classifiedAsMXMaster = false
             passThroughReason = "global mode"
         case .mxMasterOnly:
-            shouldTransform = captureDebug ? (classification?.isMXMaster ?? false) : mxMasterRegistry.isMXMasterScrollEvent(event)
+            classifiedAsMXMaster = captureDebug ? (classification?.isMXMaster ?? false) : mxMasterRegistry.isMXMasterScrollEvent(event)
             passThroughReason = classification?.reason ?? "mxMasterOnly"
         }
+        let shouldTransform = ScrollTransformer.shouldTransform(
+            mode: config.scrollTransformMode,
+            classifiedAsMXMaster: classifiedAsMXMaster
+        )
 
         guard shouldTransform else {
             guard captureDebug, let classification else {
@@ -401,3 +427,12 @@ final class ScrollTransformer {
         )
     }
 }
+
+#if DEBUG
+struct ScrollSmoothingState: Equatable {
+    let previousAxis1: Double
+    let previousAxis2: Double
+    let inertiaCarryAxis1: Double
+    let inertiaCarryAxis2: Double
+}
+#endif

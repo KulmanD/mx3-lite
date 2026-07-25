@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  swift:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: swift test
+      - name: Build release executable
+        run: swift build -c release
+      - name: Verify test frameworks are not linked
+        run: |
+          if otool -L .build/release/mx3-lite | grep -E 'XCTest|Testing'; then
+            echo "release executable links a test framework" >&2
+            exit 1
+          fi
+      - name: Verify lightweight sharing archive
+        run: |
+          bash scripts/package.sh
+          archive="../$(basename "$PWD").zip"
+          test -f "$archive"
+          if unzip -Z1 "$archive" | grep -E '(^|/)Tests(/|$)'; then
+            echo "sharing archive contains development tests" >&2
+            exit 1
+          fi

@@ -11,6 +11,10 @@ let package = Package(
         .executable(name: "mx3-lite", targets: ["MX3Lite"])
     ],
     targets: [
-        .executableTarget(name: "MX3Lite")
+        .executableTarget(name: "MX3Lite"),
+        .testTarget(
+            name: "MX3LiteTests",
+            dependencies: ["MX3Lite"]
+        )
     ]
 )

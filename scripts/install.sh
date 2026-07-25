@@ -8,7 +8,7 @@ WRAPPER="/usr/local/bin/mxmaster"
 WRAPPER_DIR="$(dirname "$WRAPPER")"
 
 cd "$PROJECT_DIR"
-swift build -c release
+swift build -c release --product mx3-lite
 
 if [[ ! -x "$RELEASE_BIN" ]]; then
   echo "mx3-lite release binary was not created at: $RELEASE_BIN" >&2

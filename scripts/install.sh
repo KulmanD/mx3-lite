@@ -3,12 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-RELEASE_BIN="$PROJECT_DIR/.build/release/mx3-lite"
-WRAPPER="/usr/local/bin/mxmaster"
+RELEASE_BIN="${MX3_LITE_BINARY:-$PROJECT_DIR/.build/release/mx3-lite}"
+WRAPPER="${MX3_MASTER_WRAPPER:-/usr/local/bin/mxmaster}"
 WRAPPER_DIR="$(dirname "$WRAPPER")"
 
-cd "$PROJECT_DIR"
-swift build -c release --product mx3-lite
+if [[ -z "${MX3_LITE_BINARY:-}" ]]; then
+  cd "$PROJECT_DIR"
+  swift build -c release --product mx3-lite
+fi
 
 if [[ ! -x "$RELEASE_BIN" ]]; then
   echo "mx3-lite release binary was not created at: $RELEASE_BIN" >&2

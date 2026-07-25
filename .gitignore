@@ -1,6 +1,8 @@
 .build/
 .swiftpm/
 DerivedData/
+dist/
+.mx3-lite-app-build.*/
 *.xcodeproj/
 *.xcworkspace/
 .DS_Store

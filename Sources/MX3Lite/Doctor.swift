@@ -202,6 +202,18 @@ struct DoctorRunner {
                 details: [target, "run bash scripts/install.sh after moving or rebuilding the project"]
             )
         case .targetMismatch(let actual, let expected):
+            if WorkerLifecycle.isRecognizedWorkerPath(actual, expectedExecutablePath: expected) {
+                return DoctorCheck(
+                    name: "wrapper",
+                    severity: .warning,
+                    summary: "wrapper uses another compatible mx3-lite helper",
+                    details: [
+                        "wrapper target: \(actual)",
+                        "current binary: \(expected)",
+                        "run the relevant installer to align both paths"
+                    ]
+                )
+            }
             return DoctorCheck(
                 name: "wrapper",
                 severity: .blocker,

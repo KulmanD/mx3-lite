@@ -1,101 +1,88 @@
 import CoreGraphics
-import Testing
+import XCTest
 @testable import MX3Lite
 
-@Suite struct GestureStateTests {
-    @Test func horizontalDirectionIsInvertedWhenConfigured() {
+final class GestureStateTests: XCTestCase {
+    func testHorizontalDirectionIsInvertedWhenConfigured() {
         var left = GestureState()
         left.begin(at: .zero)
         left.addMovement(to: CGPoint(x: -221, y: 0), invertY: false)
-        #expect(left.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: true
-        ) == .controlArrow(.right))
+        XCTAssertEqual(
+            left.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
+            .controlArrow(.right)
+        )
 
         var right = GestureState()
         right.begin(at: .zero)
         right.addMovement(to: CGPoint(x: 221, y: 0), invertY: false)
-        #expect(right.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: true
-        ) == .controlArrow(.left))
+        XCTAssertEqual(
+            right.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
+            .controlArrow(.left)
+        )
     }
 
-    @Test func horizontalDirectionIsNaturalWhenNotInverted() {
+    func testHorizontalDirectionIsNaturalWhenNotInverted() {
         var state = GestureState()
         state.begin(at: .zero)
         state.addMovement(to: CGPoint(x: -221, y: 0), invertY: false)
 
-        #expect(state.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: false
-        ) == .controlArrow(.left))
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false),
+            .controlArrow(.left)
+        )
     }
 
-    @Test func gestureTriggersOnlyOnceUntilReleaseThenResets() {
+    func testGestureTriggersOnlyOnceUntilReleaseThenResets() {
         var state = GestureState()
         state.begin(at: .zero)
         state.addMovement(to: CGPoint(x: 221, y: 0), invertY: false)
 
-        #expect(state.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: false
-        ) == .controlArrow(.right))
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false),
+            .controlArrow(.right)
+        )
         state.addMovement(to: CGPoint(x: -500, y: 0), invertY: false)
-        #expect(state.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: false
-        ) == nil)
+        XCTAssertNil(state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false))
 
         state.end()
-        #expect(!state.isActive)
-        #expect(!state.isConsumed)
-        #expect(state.accumulatedDx == 0)
+        XCTAssertFalse(state.isActive)
+        XCTAssertFalse(state.isConsumed)
+        XCTAssertEqual(state.accumulatedDx, 0)
 
         state.begin(at: .zero)
         state.addMovement(to: CGPoint(x: 0, y: -221), invertY: false)
-        #expect(state.consumeAction(
-            threshold: 220,
-            downAction: .ctrlDown,
-            invertDesktopDirection: true
-        ) == .controlArrow(.up))
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
+            .controlArrow(.up)
+        )
     }
 
-    @Test func sideButtonsAreSuppressedDuringGestureHold() {
+    func testSideButtonsAreSuppressedDuringGestureHold() {
         let buttons = ButtonConfig(gesture: 5, back: 3, forward: 4)
 
-        #expect(GestureState.buttonDownDecision(
-            button: 3,
-            buttons: buttons,
-            gestureActive: true
-        ) == .suppressSideButton)
-        #expect(GestureState.buttonDownDecision(
-            button: 4,
-            buttons: buttons,
-            gestureActive: true
-        ) == .suppressSideButton)
-        #expect(GestureState.buttonDownDecision(
-            button: 3,
-            buttons: buttons,
-            gestureActive: false
-        ) == .commandBracket(left: true))
+        XCTAssertEqual(
+            GestureState.buttonDownDecision(button: 3, buttons: buttons, gestureActive: true),
+            .suppressSideButton
+        )
+        XCTAssertEqual(
+            GestureState.buttonDownDecision(button: 4, buttons: buttons, gestureActive: true),
+            .suppressSideButton
+        )
+        XCTAssertEqual(
+            GestureState.buttonDownDecision(button: 3, buttons: buttons, gestureActive: false),
+            .commandBracket(left: true)
+        )
     }
 
-    @Test func disabledDownConsumesGestureWithoutSendingArrow() {
+    func testDisabledDownConsumesGestureWithoutSendingArrow() {
         var state = GestureState()
         state.begin(at: .zero)
         state.addMovement(to: CGPoint(x: 0, y: 221), invertY: false)
 
-        #expect(state.consumeAction(
-            threshold: 220,
-            downAction: .disabled,
-            invertDesktopDirection: true
-        ) == .disabledDown)
-        #expect(state.isConsumed)
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: true),
+            .disabledDown
+        )
+        XCTAssertTrue(state.isConsumed)
     }
 }

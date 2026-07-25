@@ -1,8 +1,8 @@
 import Foundation
-import Testing
+import XCTest
 @testable import MX3Lite
 
-@Suite struct LifecycleTests {
+final class LifecycleTests: XCTestCase {
     private let identity = WorkerProcessIdentity(
         pid: 4321,
         executablePath: "/tmp/mx3-lite",
@@ -10,33 +10,33 @@ import Testing
         startTimeMicroseconds: 200
     )
 
-    @Test func parsesCurrentMetadata() throws {
+    func testParsesCurrentMetadata() throws {
         let data = try JSONEncoder().encode(identity)
-        #expect(WorkerMetadataRecord.parse(data) == .current(identity))
+        XCTAssertEqual(WorkerMetadataRecord.parse(data), .current(identity))
     }
 
-    @Test func parsesLegacyPID() {
-        #expect(WorkerMetadataRecord.parse(Data("4321\n".utf8)) == .legacyPID(4321))
+    func testParsesLegacyPID() {
+        XCTAssertEqual(WorkerMetadataRecord.parse(Data("4321\n".utf8)), .legacyPID(4321))
     }
 
-    @Test func rejectsMalformedAndNonPositivePIDMetadata() {
-        #expect(WorkerMetadataRecord.parse(Data("not-a-pid".utf8)) == .invalid)
-        #expect(WorkerMetadataRecord.parse(Data("0".utf8)) == .invalid)
-        #expect(WorkerMetadataRecord.parse(Data("-1".utf8)) == .invalid)
+    func testRejectsMalformedAndNonPositivePIDMetadata() {
+        XCTAssertEqual(WorkerMetadataRecord.parse(Data("not-a-pid".utf8)), .invalid)
+        XCTAssertEqual(WorkerMetadataRecord.parse(Data("0".utf8)), .invalid)
+        XCTAssertEqual(WorkerMetadataRecord.parse(Data("-1".utf8)), .invalid)
     }
 
-    @Test func identityMustMatchPathPIDAndStartTimeExactly() {
-        #expect(WorkerLifecycle.matchesWorkerIdentity(
+    func testIdentityMustMatchPathPIDAndStartTimeExactly() {
+        XCTAssertTrue(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: identity.executablePath,
             inspectedIdentity: identity
         ))
-        #expect(!WorkerLifecycle.matchesWorkerIdentity(
+        XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: "/different/mx3-lite",
             inspectedIdentity: identity
         ))
-        #expect(!WorkerLifecycle.matchesWorkerIdentity(
+        XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: identity.executablePath,
             inspectedIdentity: WorkerProcessIdentity(
@@ -46,7 +46,7 @@ import Testing
                 startTimeMicroseconds: identity.startTimeMicroseconds
             )
         ))
-        #expect(!WorkerLifecycle.matchesWorkerIdentity(
+        XCTAssertFalse(WorkerLifecycle.matchesWorkerIdentity(
             identity,
             expectedExecutablePath: identity.executablePath,
             inspectedIdentity: nil

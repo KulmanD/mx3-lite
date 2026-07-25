@@ -1,48 +1,48 @@
 import Foundation
-import Testing
+import XCTest
 @testable import MX3Lite
 
-@Suite struct ConfigTests {
-    @Test func defaultConfigMatchesShippedBehavior() {
+final class ConfigTests: XCTestCase {
+    func testDefaultConfigMatchesShippedBehavior() {
         let config = AppConfig.default
 
-        #expect(config.threshold == 220)
-        #expect(config.buttons.gesture == 5)
-        #expect(config.buttons.back == 3)
-        #expect(config.buttons.forward == 4)
-        #expect(config.actionBackend == .systemEvents)
-        #expect(config.invertDesktopGestureDirection)
-        #expect(config.scrollTransformMode == .mxMasterOnly)
-        #expect(config.smoothScroll)
-        #expect(config.smoothScrollMode == .ema)
-        #expect(config.smoothScrollFactor == 0.35)
+        XCTAssertEqual(config.threshold, 220)
+        XCTAssertEqual(config.buttons.gesture, 5)
+        XCTAssertEqual(config.buttons.back, 3)
+        XCTAssertEqual(config.buttons.forward, 4)
+        XCTAssertEqual(config.actionBackend, .systemEvents)
+        XCTAssertTrue(config.invertDesktopGestureDirection)
+        XCTAssertEqual(config.scrollTransformMode, .mxMasterOnly)
+        XCTAssertTrue(config.smoothScroll)
+        XCTAssertEqual(config.smoothScrollMode, .ema)
+        XCTAssertEqual(config.smoothScrollFactor, 0.35)
     }
 
-    @Test func missingTopLevelValuesUseDefaultsAndReportDefaultSources() throws {
+    func testMissingTopLevelValuesUseDefaultsAndReportDefaultSources() throws {
         let data = Data("{}".utf8)
         let config = try JSONDecoder().decode(AppConfig.self, from: data)
         let sources = ConfigSources(data: data)
 
-        #expect(config.threshold == AppConfig.default.threshold)
-        #expect(config.buttons.gesture == 5)
-        #expect(sources.threshold == "default")
-        #expect(sources.actionBackend == "default")
-        #expect(sources.gestureButton == "default")
+        XCTAssertEqual(config.threshold, AppConfig.default.threshold)
+        XCTAssertEqual(config.buttons.gesture, 5)
+        XCTAssertEqual(sources.threshold, "default")
+        XCTAssertEqual(sources.actionBackend, "default")
+        XCTAssertEqual(sources.gestureButton, "default")
     }
 
-    @Test func presentButtonsObjectKeepsMissingMappingsDisabled() throws {
+    func testPresentButtonsObjectKeepsMissingMappingsDisabled() throws {
         let data = Data(#"{"buttons":{"gesture":5}}"#.utf8)
         let config = try JSONDecoder().decode(AppConfig.self, from: data)
         let sources = ConfigSources(data: data)
 
-        #expect(config.buttons.gesture == 5)
-        #expect(config.buttons.back == nil)
-        #expect(config.buttons.forward == nil)
-        #expect(sources.backButton == "config.json (missing -> disabled)")
-        #expect(sources.forwardButton == "config.json (missing -> disabled)")
+        XCTAssertEqual(config.buttons.gesture, 5)
+        XCTAssertNil(config.buttons.back)
+        XCTAssertNil(config.buttons.forward)
+        XCTAssertEqual(sources.backButton, "config.json (missing -> disabled)")
+        XCTAssertEqual(sources.forwardButton, "config.json (missing -> disabled)")
     }
 
-    @Test func invalidValuesFallbackOrClampAndProduceWarnings() throws {
+    func testInvalidValuesFallbackOrClampAndProduceWarnings() throws {
         let data = Data(#"""
         {
           "threshold": 0,
@@ -57,20 +57,20 @@ import Testing
         let config = try JSONDecoder().decode(AppConfig.self, from: data)
         let warnings = ConfigValidator.warnings(data: data, config: config)
 
-        #expect(config.threshold == AppConfig.default.threshold)
-        #expect(config.actionBackend == .systemEvents)
-        #expect(config.scrollTransformMode == .mxMasterOnly)
-        #expect(config.smoothScrollMode == .ema)
-        #expect(config.smoothScrollFactor == 0.95)
-        #expect(config.scrollMultiplier == 0.1)
-        #expect(config.maxScrollStep == 1)
-        #expect(warnings.contains { $0.contains("threshold must be greater than 0") })
-        #expect(warnings.contains { $0.contains("actionBackend has unknown value") })
-        #expect(warnings.contains { $0.contains("scrollTransformMode has unknown value") })
-        #expect(warnings.contains { $0.contains("smoothScrollFactor outside") })
+        XCTAssertEqual(config.threshold, AppConfig.default.threshold)
+        XCTAssertEqual(config.actionBackend, .systemEvents)
+        XCTAssertEqual(config.scrollTransformMode, .mxMasterOnly)
+        XCTAssertEqual(config.smoothScrollMode, .ema)
+        XCTAssertEqual(config.smoothScrollFactor, 0.95)
+        XCTAssertEqual(config.scrollMultiplier, 0.1)
+        XCTAssertEqual(config.maxScrollStep, 1)
+        XCTAssertTrue(warnings.contains { $0.contains("threshold must be greater than 0") })
+        XCTAssertTrue(warnings.contains { $0.contains("actionBackend has unknown value") })
+        XCTAssertTrue(warnings.contains { $0.contains("scrollTransformMode has unknown value") })
+        XCTAssertTrue(warnings.contains { $0.contains("smoothScrollFactor outside") })
     }
 
-    @Test func configStoreCreatesDefaultsAndReportsTheirSource() throws {
+    func testConfigStoreCreatesDefaultsAndReportsTheirSource() throws {
         let home = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: home) }
@@ -79,12 +79,12 @@ import Testing
         try paths.ensureDirectories()
         let loaded = try ConfigStore(paths: paths).loadOrCreateWithSources()
 
-        #expect(!loaded.configFileExisted)
-        #expect(loaded.configFileCreated)
-        #expect(FileManager.default.fileExists(atPath: paths.configFile.path))
-        #expect(loaded.config.buttons.gesture == 5)
-        #expect(loaded.sources.threshold == "default")
-        #expect(loaded.sources.gestureButton == "default")
-        #expect(loaded.warnings.isEmpty)
+        XCTAssertFalse(loaded.configFileExisted)
+        XCTAssertTrue(loaded.configFileCreated)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: paths.configFile.path))
+        XCTAssertEqual(loaded.config.buttons.gesture, 5)
+        XCTAssertEqual(loaded.sources.threshold, "default")
+        XCTAssertEqual(loaded.sources.gestureButton, "default")
+        XCTAssertTrue(loaded.warnings.isEmpty)
     }
 }

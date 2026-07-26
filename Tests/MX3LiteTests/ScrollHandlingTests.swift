@@ -27,6 +27,64 @@ final class ScrollHandlingTests: XCTestCase {
         XCTAssertEqual(result.finalAxis1, 7)
     }
 
+    func testEMAContinuesWithinOneScrollSequence() throws {
+        let config = emaConfig()
+        let transformer = ScrollTransformer()
+
+        _ = try apply(axis1: 10, timestamp: 1, config: config, transformer: transformer)
+        let result = try apply(
+            axis1: 10,
+            timestamp: 1 + ScrollTransformer.sequenceIdleGap - 1,
+            config: config,
+            transformer: transformer
+        )
+
+        XCTAssertEqual(result.afterSmoothingAxis1, 8.775, accuracy: 0.0001)
+    }
+
+    func testEMADirectionReversalResetsOnlyTheReversedAxis() throws {
+        let config = emaConfig()
+        let transformer = ScrollTransformer()
+
+        _ = try apply(axis1: 10, axis2: 10, timestamp: 1, config: config, transformer: transformer)
+        let result = try apply(
+            axis1: 10,
+            axis2: -10,
+            timestamp: 2,
+            config: config,
+            transformer: transformer
+        )
+
+        XCTAssertEqual(result.afterSmoothingAxis1, 8.775, accuracy: 0.0001)
+        XCTAssertEqual(result.afterSmoothingAxis2, -6.5, accuracy: 0.0001)
+    }
+
+    func testEMAIdleGapStartsAnIndependentSequence() throws {
+        let config = emaConfig()
+        let transformer = ScrollTransformer()
+
+        _ = try apply(axis1: 10, timestamp: 1, config: config, transformer: transformer)
+        let result = try apply(
+            axis1: 10,
+            timestamp: 1 + ScrollTransformer.sequenceIdleGap,
+            config: config,
+            transformer: transformer
+        )
+
+        XCTAssertEqual(result.afterSmoothingAxis1, 6.5, accuracy: 0.0001)
+    }
+
+    func testDisabledSmoothingDoesNotRetainSequenceTimestamp() throws {
+        var config = emaConfig()
+        config.smoothScroll = false
+        let transformer = ScrollTransformer()
+
+        let result = try apply(axis1: 10, timestamp: 123, config: config, transformer: transformer)
+
+        XCTAssertEqual(result.afterSmoothingAxis1, 10)
+        XCTAssertNil(transformer.smoothingState.lastTransformedScrollTimestamp)
+    }
+
     func testDampenSpikesUsesConfiguredDamping() throws {
         var config = AppConfig.default
         config.scrollTransformMode = .global
@@ -63,6 +121,18 @@ final class ScrollHandlingTests: XCTestCase {
         XCTAssertLessThanOrEqual(abs(state.inertiaCarryAxis2), 64)
     }
 
+    func testInertiaDirectionReversalClearsCarry() throws {
+        var config = emaConfig()
+        config.smoothScrollMode = .inertia
+        let transformer = ScrollTransformer()
+
+        _ = try apply(axis1: 10, timestamp: 1, config: config, transformer: transformer)
+        let result = try apply(axis1: -10, timestamp: 2, config: config, transformer: transformer)
+
+        XCTAssertEqual(result.afterSmoothingAxis1, -6.5, accuracy: 0.0001)
+        XCTAssertEqual(transformer.smoothingState.inertiaCarryAxis1, -3.5, accuracy: 0.0001)
+    }
+
     func testDisabledAndUnclassifiedMXMasterOnlyEventsPassThrough() throws {
         var disabled = AppConfig.default
         disabled.scrollTransformMode = .disabled
@@ -72,23 +142,44 @@ final class ScrollHandlingTests: XCTestCase {
 
         var mxMasterOnly = AppConfig.default
         mxMasterOnly.scrollTransformMode = .mxMasterOnly
-        let mxOnlyResult = try apply(axis1: 4, config: mxMasterOnly, transformer: ScrollTransformer())
+        let mxOnlyTransformer = ScrollTransformer()
+        let mxOnlyResult = try apply(axis1: 4, config: mxMasterOnly, transformer: mxOnlyTransformer)
         XCTAssertFalse(mxOnlyResult.classifiedAsMXMaster)
         XCTAssertFalse(mxOnlyResult.returnedModified)
         XCTAssertEqual(mxOnlyResult.finalAxis1, 4)
+        XCTAssertNil(mxOnlyTransformer.smoothingState.lastTransformedScrollTimestamp)
     }
 
-    private func apply(axis1: Int32, config: AppConfig, transformer: ScrollTransformer) throws -> ScrollTransformResult {
+    private func emaConfig() -> AppConfig {
+        var config = AppConfig.default
+        config.scrollTransformMode = .global
+        config.invertVerticalScroll = false
+        config.invertHorizontalScroll = false
+        config.smoothScroll = true
+        config.smoothScrollMode = .ema
+        config.smoothScrollFactor = 0.35
+        config.maxScrollStep = 100
+        return config
+    }
+
+    private func apply(
+        axis1: Int32,
+        axis2: Int32 = 0,
+        timestamp: CGEventTimestamp = 0,
+        config: AppConfig,
+        transformer: ScrollTransformer
+    ) throws -> ScrollTransformResult {
         guard let event = CGEvent(
             scrollWheelEvent2Source: nil,
             units: .line,
             wheelCount: 2,
             wheel1: axis1,
-            wheel2: 0,
+            wheel2: axis2,
             wheel3: 0
         ) else {
             throw TestError.missingEvent
         }
+        event.timestamp = timestamp
         let registry = MXMasterDeviceRegistry(logger: logger, debug: false)
         guard let result = transformer.apply(
             to: event,

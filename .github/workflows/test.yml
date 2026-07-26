@@ -10,6 +10,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - name: Verify generated config defaults
+        run: swift scripts/generate-config-defaults.swift --check
       - name: Run unit tests
         run: swift test
       - name: Build release executable
@@ -29,3 +31,13 @@ jobs:
             echo "sharing archive contains development tests or performance probes" >&2
             exit 1
           fi
+          unzip -Z1 "$archive" | grep -q '/config/defaults.json$'
+          if unzip -Z1 "$archive" | grep -qi 'default-config'; then
+            echo "sharing archive contains a retired config name" >&2
+            exit 1
+          fi
+      - name: Verify app config resource
+        run: |
+          bash scripts/build-app.sh
+          test -f dist/mx3-lite.app/Contents/Resources/defaults.json
+          test ! -e dist/mx3-lite.app/Contents/Resources/default-config.json

@@ -16,6 +16,7 @@ final class ConfigTests: XCTestCase {
         XCTAssertTrue(config.smoothScroll)
         XCTAssertEqual(config.smoothScrollMode, .ema)
         XCTAssertEqual(config.smoothScrollFactor, 0.35)
+        XCTAssertEqual(config.maxScrollStep, 8)
     }
 
     func testMissingTopLevelValuesUseDefaultsAndReportDefaultSources() throws {
@@ -86,6 +87,23 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(loaded.sources.threshold, "default")
         XCTAssertEqual(loaded.sources.gestureButton, "default")
         XCTAssertTrue(loaded.warnings.isEmpty)
+    }
+
+    func testConfigStorePreservesExistingFileBytes() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: home) }
+        let paths = AppPaths(home: home)
+        try paths.ensureDirectories()
+        let original = Data("{\n  \"buttons\": {\"gesture\": 5},\n  \"maxScrollStep\": 5\n}\n".utf8)
+        try original.write(to: paths.configFile)
+
+        let loaded = try ConfigStore(paths: paths).loadOrCreateWithSources()
+
+        XCTAssertTrue(loaded.configFileExisted)
+        XCTAssertFalse(loaded.configFileCreated)
+        XCTAssertEqual(loaded.config.maxScrollStep, 5)
+        XCTAssertEqual(try Data(contentsOf: paths.configFile), original)
     }
 
     func testReadOnlyConfigLoadDoesNotCreateMissingFile() throws {

@@ -37,6 +37,21 @@ final class AppSupportTests: XCTestCase {
         XCTAssertEqual(appConfig.buttons, AppButtonSettings(gesture: 5, back: 3, forward: 4))
         XCTAssertEqual(appConfig.actionBackend, .systemEvents)
         XCTAssertEqual(appConfig.scrollTransformMode, .mxMasterOnly)
+        XCTAssertTrue(try jsonObject(appData).isEqual(jsonObject(cliData)))
+    }
+
+    func testNeutralDefaultsSourceMatchesCompiledDefaults() throws {
+        let projectRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let defaultsData = try Data(contentsOf: projectRoot.appendingPathComponent("config/defaults.json"))
+        let appSettings = try JSONDecoder().decode(AppSettings.self, from: defaultsData)
+        let cliSettings = try JSONDecoder().decode(AppConfig.self, from: defaultsData)
+        let encoder = JSONEncoder()
+
+        XCTAssertEqual(appSettings, .default)
+        XCTAssertTrue(try jsonObject(encoder.encode(cliSettings)).isEqual(jsonObject(encoder.encode(AppConfig.default))))
     }
 
     func testOlderConfigGetsTopLevelDefaultsWithoutInventingMissingButtons() throws {
@@ -84,5 +99,9 @@ final class AppSupportTests: XCTestCase {
             )),
             .unknown("missing helper")
         )
+    }
+
+    private func jsonObject(_ data: Data) throws -> NSDictionary {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? NSDictionary)
     }
 }

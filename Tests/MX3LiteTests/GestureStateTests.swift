@@ -266,6 +266,34 @@ final class GestureStateTests: XCTestCase {
         assertInactiveAndCleared(mapper.gestureStateForTesting)
     }
 
+    func testRepeatedStaleCancellationWorkloadRemainsBounded() throws {
+        let mapper = makeMapper()
+        let startedAt: CGEventTimestamp = 1_000
+        let down = try buttonEvent(type: .otherMouseDown, timestamp: startedAt)
+        let staleMovement = try movementEvent(
+            location: CGPoint(x: 1, y: 1),
+            timestamp: startedAt + GestureState.staleHoldTimeout
+        )
+        var activationCount = 0
+        var cancellationCount = 0
+        mapper.onGestureActivityChanged = { isActive in
+            if isActive {
+                activationCount += 1
+            } else {
+                cancellationCount += 1
+            }
+        }
+
+        for _ in 0..<12_000 {
+            _ = mapper.handle(type: .otherMouseDown, event: down)
+            _ = mapper.handle(type: .mouseMoved, event: staleMovement)
+        }
+
+        XCTAssertEqual(activationCount, 12_000)
+        XCTAssertEqual(cancellationCount, 12_000)
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+    }
+
     private func makeMapper(config: AppConfig = .default) -> GestureMapper {
         let logger = DebugLogger(enabled: false)
         return GestureMapper(

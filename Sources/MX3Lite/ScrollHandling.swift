@@ -234,11 +234,15 @@ final class ScrollTransformer {
         var afterSmoothingAxis1 = smoothingInputAxis1
         var afterSmoothingAxis2 = smoothingInputAxis2
         if config.smoothScroll {
-            prepareSmoothingState(
-                axis1: smoothingInputAxis1,
-                axis2: smoothingInputAxis2,
-                timestamp: event.timestamp
-            )
+            if config.smoothScrollMode == .dampenSpikes {
+                lastTransformedScrollTimestamp = nil
+            } else {
+                prepareSmoothingState(
+                    axis1: smoothingInputAxis1,
+                    axis2: smoothingInputAxis2,
+                    timestamp: event.timestamp
+                )
+            }
             (afterSmoothingAxis1, afterSmoothingAxis2) = applySmoothing(
                 axis1: smoothingInputAxis1,
                 axis2: smoothingInputAxis2,
@@ -360,7 +364,7 @@ final class ScrollTransformer {
     }
 
     private func reversesDirection(previous: Double, current: Double) -> Bool {
-        previous != 0 && current != 0 && previous.sign != current.sign
+        previous * current < 0
     }
 
     private func boundSmoothingState(config: AppConfig) {

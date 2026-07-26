@@ -116,14 +116,10 @@ final class MouseEventTap {
                 mapper.cancelGestureForEventTapInterruption()
             }
 
-            let wasReenabled: Bool
             if shouldBeEnabled, let machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
-                wasReenabled = true
-            } else {
-                wasReenabled = false
             }
-            logTapRecovery(type: type, wasReenabled: wasReenabled)
+            logTapRecovery(type: type)
             return Unmanaged.passUnretained(event)
         }
 
@@ -142,9 +138,9 @@ final class MouseEventTap {
         }
     }
 
-    private func logTapRecovery(type: CGEventType, wasReenabled: Bool) {
+    private func logTapRecovery(type: CGEventType) {
         if let logger, logger.isEnabled {
-            logger.log("event tap disabled type=\(type.label); \(wasReenabled ? "re-enabled" : "left disabled by current state")")
+            logger.log("event tap disabled type=\(type.label); gesture state recovered")
             return
         }
 

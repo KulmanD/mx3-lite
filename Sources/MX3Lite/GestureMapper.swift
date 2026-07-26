@@ -81,7 +81,6 @@ final class GestureMapper {
             return
         }
 
-        logger.log("active gesture cancelled after event tap interruption")
         gestureState.end()
         onGestureActivityChanged?(false)
     }
@@ -185,7 +184,7 @@ final class GestureMapper {
             return false
         }
 
-        logger.log("stale gesture cancelled after \(Double(event.timestamp - (gestureState.startedAt ?? event.timestamp)) / 1_000_000_000) seconds")
+        logger.log("stale gesture cancelled")
         gestureState.end()
         onGestureActivityChanged?(false)
         return true

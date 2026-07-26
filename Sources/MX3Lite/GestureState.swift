@@ -1,5 +1,3 @@
-import CoreGraphics
-
 enum GestureAction: Equatable {
     case controlArrow(ArrowDirection)
     case disabledDown
@@ -15,7 +13,6 @@ enum ButtonDownDecision: Equatable {
 struct GestureState {
     private(set) var isActive = false
     private(set) var isConsumed = false
-    private(set) var lastLocation: CGPoint?
     private(set) var accumulatedDx = 0.0
     private(set) var accumulatedDy = 0.0
     private(set) var accumulatedScrollX = 0.0
@@ -34,10 +31,9 @@ struct GestureState {
         return .passThrough
     }
 
-    mutating func begin(at location: CGPoint) {
+    mutating func begin() {
         isActive = true
         isConsumed = false
-        lastLocation = location
         accumulatedDx = 0
         accumulatedDy = 0
         accumulatedScrollX = 0
@@ -47,23 +43,19 @@ struct GestureState {
     mutating func end() {
         isActive = false
         isConsumed = false
-        lastLocation = nil
         accumulatedDx = 0
         accumulatedDy = 0
         accumulatedScrollX = 0
         accumulatedScrollY = 0
     }
 
-    mutating func addMovement(to location: CGPoint, invertY: Bool) {
+    mutating func addMovement(deltaX: Double, deltaY: Double, invertY: Bool) {
         guard isActive else {
             return
         }
 
-        let previousLocation = lastLocation ?? location
-        accumulatedDx += Double(location.x - previousLocation.x)
-        let stepDy = Double(location.y - previousLocation.y)
-        accumulatedDy += invertY ? -stepDy : stepDy
-        lastLocation = location
+        accumulatedDx += deltaX
+        accumulatedDy += invertY ? -deltaY : deltaY
     }
 
     mutating func addScroll(axis1: Double, axis2: Double) {

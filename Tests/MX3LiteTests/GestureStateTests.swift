@@ -51,16 +51,16 @@ final class GestureStateTests: XCTestCase {
 
     func testHorizontalDirectionIsInvertedWhenConfigured() {
         var left = GestureState()
-        left.begin(at: .zero)
-        left.addMovement(to: CGPoint(x: -221, y: 0), invertY: false)
+        left.begin()
+        left.addMovement(deltaX: -221, deltaY: 0, invertY: false)
         XCTAssertEqual(
             left.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
             .controlArrow(.right)
         )
 
         var right = GestureState()
-        right.begin(at: .zero)
-        right.addMovement(to: CGPoint(x: 221, y: 0), invertY: false)
+        right.begin()
+        right.addMovement(deltaX: 221, deltaY: 0, invertY: false)
         XCTAssertEqual(
             right.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
             .controlArrow(.left)
@@ -69,8 +69,8 @@ final class GestureStateTests: XCTestCase {
 
     func testHorizontalDirectionIsNaturalWhenNotInverted() {
         var state = GestureState()
-        state.begin(at: .zero)
-        state.addMovement(to: CGPoint(x: -221, y: 0), invertY: false)
+        state.begin()
+        state.addMovement(deltaX: -221, deltaY: 0, invertY: false)
 
         XCTAssertEqual(
             state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false),
@@ -80,14 +80,14 @@ final class GestureStateTests: XCTestCase {
 
     func testGestureTriggersOnlyOnceUntilReleaseThenResets() {
         var state = GestureState()
-        state.begin(at: .zero)
-        state.addMovement(to: CGPoint(x: 221, y: 0), invertY: false)
+        state.begin()
+        state.addMovement(deltaX: 221, deltaY: 0, invertY: false)
 
         XCTAssertEqual(
             state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false),
             .controlArrow(.right)
         )
-        state.addMovement(to: CGPoint(x: -500, y: 0), invertY: false)
+        state.addMovement(deltaX: -500, deltaY: 0, invertY: false)
         XCTAssertNil(state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: false))
 
         state.end()
@@ -95,8 +95,8 @@ final class GestureStateTests: XCTestCase {
         XCTAssertFalse(state.isConsumed)
         XCTAssertEqual(state.accumulatedDx, 0)
 
-        state.begin(at: .zero)
-        state.addMovement(to: CGPoint(x: 0, y: -221), invertY: false)
+        state.begin()
+        state.addMovement(deltaX: 0, deltaY: -221, invertY: false)
         XCTAssertEqual(
             state.consumeAction(threshold: 220, downAction: .ctrlDown, invertDesktopDirection: true),
             .controlArrow(.up)
@@ -122,13 +122,95 @@ final class GestureStateTests: XCTestCase {
 
     func testDisabledDownConsumesGestureWithoutSendingArrow() {
         var state = GestureState()
-        state.begin(at: .zero)
-        state.addMovement(to: CGPoint(x: 0, y: 221), invertY: false)
+        state.begin()
+        state.addMovement(deltaX: 0, deltaY: 221, invertY: false)
 
         XCTAssertEqual(
             state.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: true),
             .disabledDown
         )
         XCTAssertTrue(state.isConsumed)
+    }
+
+    func testDeltaMovementSupportsVerticalInversion() {
+        var up = GestureState()
+        up.begin()
+        up.addMovement(deltaX: 0, deltaY: 221, invertY: true)
+        XCTAssertEqual(
+            up.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: false),
+            .controlArrow(.up)
+        )
+
+        var down = GestureState()
+        down.begin()
+        down.addMovement(deltaX: 0, deltaY: -221, invertY: true)
+        XCTAssertEqual(
+            down.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: false),
+            .disabledDown
+        )
+    }
+
+    func testDeltaThresholdIsStrictAndAccumulatesAcrossEvents() {
+        var state = GestureState()
+        state.begin()
+        state.addMovement(deltaX: -100, deltaY: 0, invertY: false)
+        state.addMovement(deltaX: -120, deltaY: 0, invertY: false)
+        XCTAssertNil(state.consumeAction(
+            threshold: 220,
+            downAction: .disabled,
+            invertDesktopDirection: false
+        ))
+
+        state.addMovement(deltaX: -1, deltaY: 0, invertY: false)
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: false),
+            .controlArrow(.left)
+        )
+    }
+
+    func testHorizontalDeltaKeepsPrecedenceForDiagonalMovement() {
+        var state = GestureState()
+        state.begin()
+        state.addMovement(deltaX: -221, deltaY: -500, invertY: false)
+
+        XCTAssertEqual(
+            state.consumeAction(threshold: 220, downAction: .disabled, invertDesktopDirection: false),
+            .controlArrow(.left)
+        )
+    }
+
+    func testMapperUsesDeltaWhenLocationDoesNotChange() throws {
+        var config = AppConfig.default
+        config.threshold = 10
+        config.downAction = .disabled
+        let logger = DebugLogger(enabled: false)
+        let mapper = GestureMapper(
+            config: config,
+            logger: logger,
+            liveEventDebug: false,
+            mxMasterRegistry: MXMasterDeviceRegistry(logger: logger, debug: false)
+        )
+        let location = CGPoint(x: 500, y: 500)
+        let down = try XCTUnwrap(CGEvent(
+            mouseEventSource: nil,
+            mouseType: .otherMouseDown,
+            mouseCursorPosition: location,
+            mouseButton: .center
+        ))
+        down.setIntegerValueField(.mouseEventButtonNumber, value: 5)
+        XCTAssertTrue(mapper.handle(type: .otherMouseDown, event: down))
+
+        let movement = try XCTUnwrap(CGEvent(
+            mouseEventSource: nil,
+            mouseType: .mouseMoved,
+            mouseCursorPosition: location,
+            mouseButton: .left
+        ))
+        movement.setIntegerValueField(.mouseEventDeltaY, value: 11)
+        XCTAssertTrue(mapper.handle(type: .mouseMoved, event: movement))
+
+        XCTAssertEqual(movement.location, location)
+        XCTAssertTrue(mapper.gestureStateForTesting.isConsumed)
+        XCTAssertEqual(mapper.gestureStateForTesting.accumulatedDy, 11)
     }
 }

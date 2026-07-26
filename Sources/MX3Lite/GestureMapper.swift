@@ -81,7 +81,7 @@ final class GestureMapper {
 
         switch GestureState.buttonDownDecision(button: button, buttons: config.buttons, gestureActive: gestureState.isActive) {
         case .beginGesture:
-            gestureState.begin(at: event.location)
+            gestureState.begin()
             onGestureActivityChanged?(true)
             logger.log("gesture start button=\(button) startLocation=\(event.location.compactDescription)")
             return true
@@ -119,12 +119,10 @@ final class GestureMapper {
             return false
         }
 
-        let currentLocation = event.location
-        let previousLocation = gestureState.lastLocation ?? currentLocation
-        let stepDx = Double(currentLocation.x - previousLocation.x)
-        let rawStepDy = Double(currentLocation.y - previousLocation.y)
+        let stepDx = Double(event.getIntegerValueField(.mouseEventDeltaX))
+        let rawStepDy = Double(event.getIntegerValueField(.mouseEventDeltaY))
         let stepDy = config.invertY ? -rawStepDy : rawStepDy
-        gestureState.addMovement(to: currentLocation, invertY: config.invertY)
+        gestureState.addMovement(deltaX: stepDx, deltaY: rawStepDy, invertY: config.invertY)
 
         logger.log("gesture move type=\(type.label) stepDx=\(format(stepDx)) stepDy=\(format(stepDy)) accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy))")
 
@@ -132,6 +130,12 @@ final class GestureMapper {
 
         return true
     }
+
+#if DEBUG
+    var gestureStateForTesting: GestureState {
+        gestureState
+    }
+#endif
 
     private func handleScroll(event: CGEvent) -> Bool {
         guard gestureState.isActive else {

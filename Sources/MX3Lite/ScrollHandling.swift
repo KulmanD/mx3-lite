@@ -215,8 +215,15 @@ final class ScrollTransformer {
             )
         }
 
-        var afterInversionAxis1 = Double(rawAxis1)
-        var afterInversionAxis2 = Double(rawAxis2)
+        let rawFixedAxis1 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+        let rawFixedAxis2 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+        let rawPointAxis1 = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
+        let rawPointAxis2 = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
+        let inputAxis1 = canonicalDelta(integer: rawAxis1, fixed: rawFixedAxis1, point: rawPointAxis1)
+        let inputAxis2 = canonicalDelta(integer: rawAxis2, fixed: rawFixedAxis2, point: rawPointAxis2)
+
+        var afterInversionAxis1 = inputAxis1
+        var afterInversionAxis2 = inputAxis2
 
         if config.invertVerticalScroll {
             afterInversionAxis1 *= -1
@@ -258,11 +265,18 @@ final class ScrollTransformer {
 
         let afterClampAxis1 = clampStep(afterSmoothingAxis1, maxStep: config.maxScrollStep)
         let afterClampAxis2 = clampStep(afterSmoothingAxis2, maxStep: config.maxScrollStep)
-        let roundedAxis1 = Int64(afterClampAxis1.rounded())
-        let roundedAxis2 = Int64(afterClampAxis2.rounded())
+        let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+        let roundedAxis1 = integerDelta(afterClampAxis1, continuous: isContinuous)
+        let roundedAxis2 = integerDelta(afterClampAxis2, continuous: isContinuous)
+        let pointAxis1 = roundedInt64(afterClampAxis1 * pointScale(fixed: rawFixedAxis1, point: rawPointAxis1))
+        let pointAxis2 = roundedInt64(afterClampAxis2 * pointScale(fixed: rawFixedAxis2, point: rawPointAxis2))
 
         event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: roundedAxis1)
         event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: roundedAxis2)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: afterClampAxis1)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: afterClampAxis2)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: pointAxis1)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: pointAxis2)
 
         guard captureDebug else {
             return nil
@@ -300,6 +314,50 @@ final class ScrollTransformer {
 
         let magnitude = pow(abs(adjusted), acceleration)
         return adjusted < 0 ? -magnitude : magnitude
+    }
+
+    private func canonicalDelta(integer: Int64, fixed: Double, point: Int64) -> Double {
+        if fixed.isFinite, fixed != 0 {
+            return fixed
+        }
+        if point != 0 {
+            return Double(point) / 10
+        }
+        return Double(integer)
+    }
+
+    private func pointScale(fixed: Double, point: Int64) -> Double {
+        guard fixed.isFinite, fixed != 0, point != 0 else {
+            // CoreGraphics-generated line and pixel events use ten points per fixed delta unit.
+            return 10
+        }
+        let scale = Double(point) / fixed
+        return scale.isFinite && scale > 0 ? scale : 10
+    }
+
+    private func integerDelta(_ value: Double, continuous: Bool) -> Int64 {
+        guard value.isFinite, value != 0 else {
+            return 0
+        }
+        // Match CoreGraphics pixel events while retaining the existing nearest-line behavior.
+        let rounded = roundedInt64(continuous ? value.rounded(.towardZero) : value.rounded())
+        if continuous, rounded == 0 {
+            return value < 0 ? -1 : 1
+        }
+        return rounded
+    }
+
+    private func roundedInt64(_ value: Double) -> Int64 {
+        guard value.isFinite else {
+            return 0
+        }
+        if value >= Double(Int64.max) {
+            return Int64.max
+        }
+        if value <= Double(Int64.min) {
+            return Int64.min
+        }
+        return Int64(value.rounded())
     }
 
     private func applySmoothing(axis1: Double, axis2: Double, config: AppConfig) -> (Double, Double) {

@@ -25,7 +25,7 @@ jobs:
           bash scripts/package.sh
           archive="../$(basename "$PWD").zip"
           test -f "$archive"
-          if unzip -Z1 "$archive" | grep -E '(^|/)Tests(/|$)'; then
-            echo "sharing archive contains development tests" >&2
+          if unzip -Z1 "$archive" | grep -E '(^|/)(Tests|scripts/performance)(/|$)'; then
+            echo "sharing archive contains development tests or performance probes" >&2
             exit 1
           fi

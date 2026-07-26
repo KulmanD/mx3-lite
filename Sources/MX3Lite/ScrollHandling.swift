@@ -217,10 +217,8 @@ final class ScrollTransformer {
 
         let rawFixedAxis1 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
         let rawFixedAxis2 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
-        let rawPointAxis1 = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
-        let rawPointAxis2 = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
-        let inputAxis1 = canonicalDelta(integer: rawAxis1, fixed: rawFixedAxis1, point: rawPointAxis1)
-        let inputAxis2 = canonicalDelta(integer: rawAxis2, fixed: rawFixedAxis2, point: rawPointAxis2)
+        let inputAxis1 = canonicalDelta(integer: rawAxis1, fixed: rawFixedAxis1)
+        let inputAxis2 = canonicalDelta(integer: rawAxis2, fixed: rawFixedAxis2)
 
         var afterInversionAxis1 = inputAxis1
         var afterInversionAxis2 = inputAxis2
@@ -268,15 +266,20 @@ final class ScrollTransformer {
         let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
         let roundedAxis1 = integerDelta(afterClampAxis1, continuous: isContinuous)
         let roundedAxis2 = integerDelta(afterClampAxis2, continuous: isContinuous)
-        let pointAxis1 = roundedInt64(afterClampAxis1 * pointScale(fixed: rawFixedAxis1, point: rawPointAxis1))
-        let pointAxis2 = roundedInt64(afterClampAxis2 * pointScale(fixed: rawFixedAxis2, point: rawPointAxis2))
+        // CoreGraphics-generated line and pixel events use ten points per fixed delta unit.
+        let pointAxis1 = roundedInt64(afterClampAxis1 * 10)
+        let pointAxis2 = roundedInt64(afterClampAxis2 * 10)
 
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: roundedAxis1)
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: roundedAxis2)
-        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: afterClampAxis1)
-        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: afterClampAxis2)
-        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: pointAxis1)
-        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: pointAxis2)
+        if inputAxis1 != 0 || afterClampAxis1 != 0 {
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: roundedAxis1)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: afterClampAxis1)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: pointAxis1)
+        }
+        if inputAxis2 != 0 || afterClampAxis2 != 0 {
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: roundedAxis2)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: afterClampAxis2)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: pointAxis2)
+        }
 
         guard captureDebug else {
             return nil
@@ -316,23 +319,11 @@ final class ScrollTransformer {
         return adjusted < 0 ? -magnitude : magnitude
     }
 
-    private func canonicalDelta(integer: Int64, fixed: Double, point: Int64) -> Double {
+    private func canonicalDelta(integer: Int64, fixed: Double) -> Double {
         if fixed.isFinite, fixed != 0 {
             return fixed
         }
-        if point != 0 {
-            return Double(point) / 10
-        }
         return Double(integer)
-    }
-
-    private func pointScale(fixed: Double, point: Int64) -> Double {
-        guard fixed.isFinite, fixed != 0, point != 0 else {
-            // CoreGraphics-generated line and pixel events use ten points per fixed delta unit.
-            return 10
-        }
-        let scale = Double(point) / fixed
-        return scale.isFinite && scale > 0 ? scale : 10
     }
 
     private func integerDelta(_ value: Double, continuous: Bool) -> Int64 {

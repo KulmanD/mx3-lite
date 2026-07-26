@@ -112,10 +112,18 @@ final class MouseEventTap {
 
     fileprivate func handle(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if case .map(let mapper) = mode {
+                mapper.cancelGestureForEventTapInterruption()
+            }
+
+            let wasReenabled: Bool
             if shouldBeEnabled, let machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
-                logTapRecovery(type: type)
+                wasReenabled = true
+            } else {
+                wasReenabled = false
             }
+            logTapRecovery(type: type, wasReenabled: wasReenabled)
             return Unmanaged.passUnretained(event)
         }
 
@@ -134,9 +142,9 @@ final class MouseEventTap {
         }
     }
 
-    private func logTapRecovery(type: CGEventType) {
+    private func logTapRecovery(type: CGEventType, wasReenabled: Bool) {
         if let logger, logger.isEnabled {
-            logger.log("event tap disabled type=\(type.label); re-enabled")
+            logger.log("event tap disabled type=\(type.label); \(wasReenabled ? "re-enabled" : "left disabled by current state")")
             return
         }
 
@@ -144,7 +152,7 @@ final class MouseEventTap {
             return
         }
         recoveryMessagePrinted = true
-        FileHandle.standardError.writeLine("mx3-lite: event tap was disabled; re-enabled")
+        FileHandle.standardError.writeLine("mx3-lite: event tap was disabled; gesture state recovered")
     }
 }
 

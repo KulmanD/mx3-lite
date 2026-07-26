@@ -76,6 +76,22 @@ final class GestureMapper {
         return suppressed
     }
 
+    func cancelGestureForEventTapInterruption() {
+        guard gestureState.isActive else {
+            return
+        }
+
+        logger.log("active gesture cancelled after event tap interruption")
+        gestureState.end()
+        onGestureActivityChanged?(false)
+    }
+
+#if DEBUG
+    var gestureStateForTesting: GestureState {
+        gestureState
+    }
+#endif
+
     private func handleButtonDown(event: CGEvent) -> Bool {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
 

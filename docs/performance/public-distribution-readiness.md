@@ -21,7 +21,7 @@ Tracking issue: [#27](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight
 | Role | Branch | Commit | Dirty |
 | --- | --- | --- | --- |
 | Runtime base | `refactor/standardize-config-defaults` | `8ac3154774e0e17a28f9830c6de4336fbc964468` | no |
-| Candidate | `release/public-distribution-readiness` | `a812311` | no |
+| Candidate | `release/public-distribution-readiness` | `7189fa5` | no |
 
 This branch is stacked on #26 because public archives must use the neutral
 `config/defaults.json` resource. A tree comparison confirms no runtime source,
@@ -139,6 +139,6 @@ claimed until the owner:
 
 | Combination | Base | Candidate | Result |
 | --- | --- | --- | --- |
-| Runtime features | #26 accepted tree | `a812311` | no runtime diff |
+| Runtime features | #26 accepted tree | `7189fa5` | no runtime diff |
 
 No runtime interaction branch is required for distribution-only files.

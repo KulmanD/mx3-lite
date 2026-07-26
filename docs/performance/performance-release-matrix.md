@@ -29,7 +29,7 @@ until their isolated reports are complete.
 | [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24) | `perf/reset-scroll-smoothing-state` | `reset-scroll-smoothing-state.md` | pending | pending |
 | [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25) | `fix/preserve-scroll-delta-fields` | `preserve-scroll-delta-fields.md` | pending | pending |
 | [#26](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/26) | `refactor/standardize-config-defaults` | `standardize-config-defaults.md` | accept | not applicable |
-| [#27](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/27) | `release/public-distribution-readiness` | `public-distribution-readiness.md` | pending | pending |
+| [#27](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/27) | `release/public-distribution-readiness` | `public-distribution-readiness.md` | accept | not applicable |
 
 Valid isolated states are `pending`, `accept`, `redesign`, and `reject`.
 

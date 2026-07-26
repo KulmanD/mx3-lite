@@ -149,6 +149,31 @@ final class GestureStateTests: XCTestCase {
         XCTAssertEqual(activityChanges, [true, false, true])
     }
 
+    func testRepeatedRecoveryWorkloadRemainsBounded() throws {
+        let mapper = makeMapper()
+        let down = try buttonEvent(type: .otherMouseDown, button: 5)
+        let movement = try mouseEvent(type: .mouseMoved, location: CGPoint(x: 1, y: 1))
+        var activationCount = 0
+        var cancellationCount = 0
+        mapper.onGestureActivityChanged = { isActive in
+            if isActive {
+                activationCount += 1
+            } else {
+                cancellationCount += 1
+            }
+        }
+
+        for _ in 0..<12_000 {
+            _ = mapper.handle(type: .otherMouseDown, event: down)
+            _ = mapper.handle(type: .mouseMoved, event: movement)
+            mapper.cancelGestureForEventTapInterruption()
+        }
+
+        XCTAssertEqual(activationCount, 12_000)
+        XCTAssertEqual(cancellationCount, 12_000)
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+    }
+
     func testHorizontalDirectionIsInvertedWhenConfigured() {
         var left = GestureState()
         left.begin(at: .zero)

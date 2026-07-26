@@ -51,6 +51,17 @@ The sampling process creates a small amount of external measurement activity.
 Use the same interval for baseline and candidate, and repeat a noisy result at
 least three times.
 
+To build once and collect the standard three isolated runs for a candidate:
+
+```bash
+bash scripts/performance/measure-candidate.sh --label feature-name
+```
+
+Use `--runs`, `--duration`, `--interval`, and `--warmup` to override the
+protocol. Results are written under `/tmp` by default. The runner checks that
+the user config hash is unchanged and that no worker remains after the final
+run.
+
 ## Required measurements
 
 - strict idle CPU-time delta over at least 150 seconds

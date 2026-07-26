@@ -13,9 +13,12 @@ enum ButtonDownDecision: Equatable {
 }
 
 struct GestureState {
+    static let staleHoldTimeout: CGEventTimestamp = 30_000_000_000
+
     private(set) var isActive = false
     private(set) var isConsumed = false
     private(set) var lastLocation: CGPoint?
+    private(set) var startedAt: CGEventTimestamp?
     private(set) var accumulatedDx = 0.0
     private(set) var accumulatedDy = 0.0
     private(set) var accumulatedScrollX = 0.0
@@ -34,10 +37,11 @@ struct GestureState {
         return .passThrough
     }
 
-    mutating func begin(at location: CGPoint) {
+    mutating func begin(at location: CGPoint, timestamp: CGEventTimestamp = 0) {
         isActive = true
         isConsumed = false
         lastLocation = location
+        startedAt = timestamp
         accumulatedDx = 0
         accumulatedDy = 0
         accumulatedScrollX = 0
@@ -48,10 +52,18 @@ struct GestureState {
         isActive = false
         isConsumed = false
         lastLocation = nil
+        startedAt = nil
         accumulatedDx = 0
         accumulatedDy = 0
         accumulatedScrollX = 0
         accumulatedScrollY = 0
+    }
+
+    func isStale(at timestamp: CGEventTimestamp, timeout: CGEventTimestamp = staleHoldTimeout) -> Bool {
+        guard isActive, let startedAt, timestamp >= startedAt else {
+            return false
+        }
+        return timestamp - startedAt >= timeout
     }
 
     mutating func addMovement(to location: CGPoint, invertY: Bool) {

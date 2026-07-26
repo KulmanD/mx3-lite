@@ -55,6 +55,18 @@ The helper owns:
 - worker PID lifecycle and duplicate prevention
 - terminal output and debug modes
 
+## Configuration ownership
+
+`config/defaults.json` is the single editable authority for first-run values.
+The development-only generator creates target-local constants used by the
+worker's `AppConfig.default` and the native app's `AppSettings.default`; CI
+rejects stale generated files. Neither process reads a bundled defaults
+resource at startup.
+
+The app bundle includes the neutral source as `Resources/defaults.json` for
+source users. It is not loaded automatically and never overwrites
+`~/Library/Application Support/mx3-lite/config.json`.
+
 ## Refresh policy
 
 There is no periodic status timer. The app refreshes when:

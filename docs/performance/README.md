@@ -11,7 +11,8 @@ checks, normal logging, network access, or an additional persistent thread.
 
 Before implementing an experiment:
 
-1. Record the exact clean `main` commit.
+1. Start the feature branch from the `performance-baseline-v1` tag and record
+   the exact resolved commit.
 2. Build the release helper with `swift build -c release --product mx3-lite`.
 3. Record its SHA-256, size, architecture, linked libraries, macOS version,
    hardware model, Swift version, and parsed config.
@@ -19,9 +20,11 @@ Before implementing an experiment:
 5. Use the same machine, config, permissions, connected devices, test duration,
    and workload for the candidate branch.
 
-All independent feature branches in one experiment series should start from
-the same recorded baseline commit. Do not merge one candidate into `main`
-before the other isolated measurements are complete.
+All independent feature branches in this experiment series start from
+`performance-baseline-v1`. The tag includes the measurement infrastructure;
+the release helper at that tag is byte-identical to the recorded runtime
+baseline. Do not stack one candidate on another before isolated measurements
+are complete.
 
 ## Measurement helper
 
@@ -86,7 +89,7 @@ resources.
 Individually acceptable branches are tested again on temporary
 `perf/candidate-integration`:
 
-1. Start from the fixed baseline commit.
+1. Start from `performance-baseline-v1`.
 2. Apply one accepted candidate at a time.
 3. Run the complete baseline after each addition.
 4. Test related pairs, then all accepted runtime changes together.

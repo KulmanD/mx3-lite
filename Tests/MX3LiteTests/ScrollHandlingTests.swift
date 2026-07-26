@@ -207,12 +207,14 @@ final class ScrollHandlingTests: XCTestCase {
 
         let next = try makeEvent(units: .pixel, axis1: 10)
         next.timestamp = 1 + ScrollTransformer.sequenceIdleGap
+        let expectedFixed = next.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1) * 0.65
+        let expectedPoint = Int64((expectedFixed * 10).rounded())
         let result = try apply(event: next, config: config, transformer: transformer)
 
-        XCTAssertEqual(result.afterSmoothingAxis1, 6.5, accuracy: 0.0001)
-        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventDeltaAxis1), 6)
-        XCTAssertEqual(next.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1), 6.5, accuracy: 0.0001)
-        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), 65)
+        XCTAssertEqual(result.afterSmoothingAxis1, expectedFixed, accuracy: 0.0001)
+        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventDeltaAxis1), 1)
+        XCTAssertEqual(next.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1), expectedFixed, accuracy: 0.0001)
+        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), expectedPoint)
     }
 
     func testDirectionResetKeepsEveryHorizontalDeltaRepresentationConsistent() throws {

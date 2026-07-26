@@ -332,6 +332,39 @@ final class GestureStateTests: XCTestCase {
         assertInactiveAndCleared(mapper.gestureStateForTesting)
     }
 
+    func testStaleScrollCancellationTransformsEveryDeltaRepresentation() throws {
+        let config = transformedScrollConfig()
+        let mapper = makeMapper(config: config)
+        let startedAt: CGEventTimestamp = 10_000
+
+        _ = mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(type: .otherMouseDown, timestamp: startedAt)
+        )
+        let scroll = try scrollEvent(axis1: 2, timestamp: startedAt + GestureState.staleHoldTimeout)
+
+        XCTAssertFalse(mapper.handle(type: .scrollWheel, event: scroll))
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+        XCTAssertEqual(scroll.getIntegerValueField(.scrollWheelEventDeltaAxis1), -2)
+        XCTAssertEqual(scroll.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1), -2, accuracy: 0.0001)
+        XCTAssertEqual(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), -20)
+    }
+
+    func testInterruptionRecoveryReturnsScrollToInactiveTransformPath() throws {
+        let config = transformedScrollConfig()
+        let mapper = makeMapper(config: config)
+
+        _ = mapper.handle(type: .otherMouseDown, event: try buttonEvent(type: .otherMouseDown))
+        mapper.cancelGestureForEventTapInterruption()
+        let scroll = try scrollEvent(axis1: 3, timestamp: 1)
+
+        XCTAssertFalse(mapper.handle(type: .scrollWheel, event: scroll))
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+        XCTAssertEqual(scroll.getIntegerValueField(.scrollWheelEventDeltaAxis1), -3)
+        XCTAssertEqual(scroll.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1), -3, accuracy: 0.0001)
+        XCTAssertEqual(scroll.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), -30)
+    }
+
     func testStaleGestureButtonDownStartsANewGestureImmediately() throws {
         var config = AppConfig.default
         config.threshold = 10
@@ -467,6 +500,33 @@ final class GestureStateTests: XCTestCase {
 
     private func movementEvent(location: CGPoint, timestamp: CGEventTimestamp) throws -> CGEvent {
         try mouseEvent(type: .mouseMoved, location: location, timestamp: timestamp)
+    }
+
+    private func scrollEvent(axis1: Int32, timestamp: CGEventTimestamp) throws -> CGEvent {
+        let event = try XCTUnwrap(CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .line,
+            wheelCount: 2,
+            wheel1: axis1,
+            wheel2: 0,
+            wheel3: 0
+        ))
+        event.timestamp = timestamp
+        return event
+    }
+
+    private func transformedScrollConfig() -> AppConfig {
+        var config = AppConfig.default
+        config.scrollTransformMode = .global
+        config.invertVerticalScroll = true
+        config.invertHorizontalScroll = false
+        config.scrollMultiplier = 1
+        config.ratchetStepMultiplier = 1
+        config.scrollAcceleration = 1
+        config.scrollDeadzone = 0
+        config.smoothScroll = false
+        config.maxScrollStep = 100
+        return config
     }
 
     private func assertInactiveAndCleared(

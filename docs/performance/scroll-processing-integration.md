@@ -53,7 +53,7 @@ the helper, app bundle, and sharing ZIP.
 - [x] No timer, dispatch source, delayed task, or scroll repost added
 - [x] One 10-second measurement-runner smoke test completed and stopped worker
 - [x] User config hash remained unchanged
-- [ ] GitHub Actions: expected 43 tests
+- [x] GitHub Actions: 43 tests, 0 failures
 - [ ] Three strict-idle runs with normal 10-second warm-up
 - [ ] Combined fixed-event-count scroll benchmark
 - [ ] MX Master ratchet/free-spin and trackpad coexistence checks

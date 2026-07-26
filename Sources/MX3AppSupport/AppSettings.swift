@@ -93,24 +93,28 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public var scrollTransformMode: AppScrollTransformMode
 
     public static let `default` = AppSettings(
-        threshold: 220,
-        buttons: AppButtonSettings(gesture: 5, back: 3, forward: 4),
+        threshold: ConfigDefaults.threshold,
+        buttons: AppButtonSettings(
+            gesture: ConfigDefaults.gestureButton,
+            back: ConfigDefaults.backButton,
+            forward: ConfigDefaults.forwardButton
+        ),
         downAction: .ctrlDown,
-        invertY: false,
-        invertDesktopGestureDirection: true,
+        invertY: ConfigDefaults.invertY,
+        invertDesktopGestureDirection: ConfigDefaults.invertDesktopGestureDirection,
         actionBackend: .systemEvents,
-        invertVerticalScroll: true,
-        invertHorizontalScroll: false,
-        scrollMultiplier: 1,
-        smoothScroll: true,
+        invertVerticalScroll: ConfigDefaults.invertVerticalScroll,
+        invertHorizontalScroll: ConfigDefaults.invertHorizontalScroll,
+        scrollMultiplier: ConfigDefaults.scrollMultiplier,
+        smoothScroll: ConfigDefaults.smoothScroll,
         smoothScrollMode: .ema,
-        smoothScrollFactor: 0.35,
-        scrollDeadzone: 0,
-        maxScrollStep: 8,
-        scrollAcceleration: 1,
-        freeSpinDamping: 0.75,
-        ratchetStepMultiplier: 1,
-        allowGlobalScrollTransform: false,
+        smoothScrollFactor: ConfigDefaults.smoothScrollFactor,
+        scrollDeadzone: ConfigDefaults.scrollDeadzone,
+        maxScrollStep: ConfigDefaults.maxScrollStep,
+        scrollAcceleration: ConfigDefaults.scrollAcceleration,
+        freeSpinDamping: ConfigDefaults.freeSpinDamping,
+        ratchetStepMultiplier: ConfigDefaults.ratchetStepMultiplier,
+        allowGlobalScrollTransform: ConfigDefaults.allowGlobalScrollTransform,
         scrollTransformMode: .mxMasterOnly
     )
 

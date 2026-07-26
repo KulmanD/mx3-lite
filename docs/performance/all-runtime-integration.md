@@ -105,7 +105,7 @@ end-user artifact.
 - [x] Start, Status, Stop; no process remains after Stop
 - [x] User config hash unchanged
 - [x] Binary-size cliff reproduced and removed
-- [ ] GitHub Actions: expected 56 tests
+- [x] GitHub Actions: 56 tests, 0 failures
 - [ ] Three strict-idle maintainer runs
 - [ ] Combined gesture and scroll fixed-workload measurements
 - [ ] Physical MX Master gesture, ratchet, free-spin, and trackpad checks

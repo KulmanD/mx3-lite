@@ -23,9 +23,9 @@ until their isolated reports are complete.
 
 | Issue | Branch | Performance report | Isolated status | Interaction status |
 | --- | --- | --- | --- | --- |
-| [#21](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/21) | `fix/reset-interrupted-gesture` | `reset-interrupted-gesture.md` | accept | pending |
+| [#21](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/21) | `fix/reset-interrupted-gesture` | `reset-interrupted-gesture.md` | accept | accept with #23 |
 | [#22](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/22) | `fix/use-cgevent-movement-deltas` | `cgevent-movement-deltas.md` | pending | pending |
-| [#23](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/23) | `fix/abort-stale-gesture-holds` | `stale-gesture-hold.md` | accept | pending |
+| [#23](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/23) | `fix/abort-stale-gesture-holds` | `stale-gesture-hold.md` | accept | accept with #21 |
 | [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24) | `perf/reset-scroll-smoothing-state` | `reset-scroll-smoothing-state.md` | pending | pending |
 | [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25) | `fix/preserve-scroll-delta-fields` | `preserve-scroll-delta-fields.md` | pending | pending |
 | [#26](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/26) | `refactor/standardize-config-defaults` | `standardize-config-defaults.md` | pending | pending |
@@ -37,7 +37,7 @@ Valid isolated states are `pending`, `accept`, `redesign`, and `reject`.
 
 | Group | Candidates | Reason | Status |
 | --- | --- | --- | --- |
-| Gesture recovery | #21 + #23 | Both cancel or reset held-gesture state | pending |
+| Gesture recovery | #21 + #23 | Both cancel or reset held-gesture state | accept |
 | Gesture movement | #22 + #23 | Both execute on active movement paths | pending |
 | Scroll processing | #24 + #25 | Both change the transformed scroll callback | pending |
 | Runtime set | All isolated runtime candidates marked `accept` | Detect cumulative or nonlinear cost | pending |

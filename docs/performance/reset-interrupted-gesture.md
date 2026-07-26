@@ -168,8 +168,10 @@ was not forced. Physical recovery and ordinary gestures must be checked with
 
 | Combination | Baseline commit | Combined commit | Result | Report |
 | --- | --- | --- | --- | --- |
-| #21 + #23 gesture recovery | `32dd841` | pending | pending | pending |
+| #21 + #23 gesture recovery | `32dd841` | `271faf6` | accept | `gesture-recovery-integration.md` |
 | All accepted runtime changes | `32dd841` | pending | pending | pending |
 
 This isolated acceptance does not authorize merging until the required
 interaction checks pass.
+
+The optimized interaction passed. The final runtime-set gate remains pending.

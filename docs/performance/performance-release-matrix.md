@@ -73,8 +73,8 @@ worker or app sources.
 | Tests absent from release helper and sharing ZIP | pass |
 | App archive size | 438594-byte fresh baseline; 438631-byte candidate (+37 bytes, +0.0084%) |
 | Local tests | blocked: selected Command Line Tools do not provide XCTest |
-| GitHub Actions tests | pending |
-| Decision | provisional accept pending CI |
+| GitHub Actions tests | pass: unit tests, release build, linkage check, and archive verification |
+| Decision | accept |
 
 ### Measurement context
 

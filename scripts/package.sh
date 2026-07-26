@@ -48,6 +48,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
     -x "$PROJECT_NAME/DerivedData/*" \
     -x "$PROJECT_NAME/dist/*" \
     -x "$PROJECT_NAME/Tests/*" \
+    -x "$PROJECT_NAME/scripts/performance/*" \
     -x "$PROJECT_NAME/.mx3-lite-app-build.*/*" \
     -x "$PROJECT_NAME/*.xcodeproj/*" \
     -x "$PROJECT_NAME/*.xcworkspace/*" \
@@ -64,7 +65,7 @@ for required_path in "${required_paths[@]}"; do
   fi
 done
 
-if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.github|\.swiftpm|DerivedData|dist|Tests)/|^$PROJECT_NAME/\.mx3-lite-app-build\.|/\.DS_Store$" <<<"$archive_entries"; then
+if grep -Eq "^$PROJECT_NAME/(\.build|\.git|\.github|\.swiftpm|DerivedData|dist|Tests)/|^$PROJECT_NAME/scripts/performance/|^$PROJECT_NAME/\.mx3-lite-app-build\.|/\.DS_Store$" <<<"$archive_entries"; then
   echo "Package verification failed; an excluded path is present." >&2
   exit 1
 fi
@@ -73,4 +74,4 @@ mv -f "$TEMP_ZIP" "$OUTPUT_ZIP"
 
 echo "Created $OUTPUT_ZIP"
 echo "Included: README.md, Package.swift, Sources/, scripts/, config/, docs/, and .gitignore"
-echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, dist/, Tests/, Xcode artifacts, and .DS_Store"
+echo "Excluded: .build/, .git/, .github/, .swiftpm/, DerivedData/, dist/, Tests/, performance probes, Xcode artifacts, and .DS_Store"

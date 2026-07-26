@@ -2,20 +2,22 @@
 
 Tracking issue: [#20](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/20)
 
-## Fixed baseline
+## Runtime baseline and branch base
 
 | Item | Value |
 | --- | --- |
-| Commit | `be09b042d8386083cc49ecba88828a658e6d4257` |
-| Branch | `main` |
+| Runtime baseline commit | `be09b042d8386083cc49ecba88828a658e6d4257` |
+| Experiment branch base | `performance-baseline-v1` |
 | Release helper SHA-256 | `8ce79405bf59aa2afd516f1f6e0426887609993cd29d842bcba2fe03abff5a2b` |
 | Release helper bytes | `432552` |
 | Architecture | `arm64` |
 | Swift | Apple Swift 6.3.2, Swift 5.9 package mode |
 
-All isolated feature branches in this series start from this commit after the
-measurement infrastructure is available. Runtime candidates are not merged to
-`main` until their isolated reports are complete.
+All isolated feature branches in this series start from the
+`performance-baseline-v1` tag, which includes the measurement infrastructure.
+Worker comparisons use the runtime baseline values above because issue #20 did
+not change the release helper. Runtime candidates are not merged to `main`
+until their isolated reports are complete.
 
 ## Candidate register
 
@@ -42,7 +44,8 @@ Valid isolated states are `pending`, `accept`, `redesign`, and `reject`.
 
 ## Integration procedure
 
-1. Create temporary `perf/candidate-integration` from the fixed baseline.
+1. Create temporary `perf/candidate-integration` from
+   `performance-baseline-v1`.
 2. Apply accepted candidates one at a time without merge commits.
 3. Rebuild and rerun strict idle after every addition.
 4. Run each feature-specific active workload.

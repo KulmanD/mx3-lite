@@ -42,6 +42,16 @@ Valid isolated states are `pending`, `accept`, `redesign`, and `reject`.
 | Scroll processing | #24 + #25 | Both change the transformed scroll callback | implementation complete; maintainer measurement pending |
 | Runtime set | All isolated runtime candidates marked `accept` | Detect cumulative or nonlinear cost | implementation complete; maintainer measurement pending |
 
+## Complete candidate
+
+| Branch | Runtime commit | Helper bytes | `__TEXT` bytes | Status |
+| --- | --- | ---: | ---: | --- |
+| `release/final-feature-candidate` | `b95b7dd` | 433528 | 212992 | static and packaging checks complete; maintainer measurement pending |
+
+The complete candidate combines #26 and #27 with the optimized runtime set
+without changing the runtime-only helper size or text layout. Use
+`final-feature-candidate.md` for the final delegated validation record.
+
 ## Integration procedure
 
 1. Create temporary `perf/candidate-integration` from

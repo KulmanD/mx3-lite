@@ -74,7 +74,7 @@ resource/documentation updates, and code-signature/compression variation.
 - [x] Release helper does not link XCTest or Testing
 - [x] Start, Status, Stop; no worker remains
 - [x] No launch agent, login item, updater, telemetry, or normal log added
-- [ ] GitHub Actions: expected 56 tests plus two architecture jobs
+- [x] GitHub Actions: 56 tests plus arm64 and x86_64 archive jobs
 - [ ] Three strict-idle maintainer runs from this complete branch
 - [ ] Combined active gesture and scroll workload
 - [ ] Physical MX Master and MacBook trackpad validation

@@ -128,10 +128,13 @@ struct ScrollTransformResult {
 }
 
 final class ScrollTransformer {
+    static let sequenceIdleGap: CGEventTimestamp = 200_000_000
+
     private var previousAxis1 = 0.0
     private var previousAxis2 = 0.0
     private var inertiaCarryAxis1 = 0.0
     private var inertiaCarryAxis2 = 0.0
+    private var lastTransformedScrollTimestamp: CGEventTimestamp?
 
     #if DEBUG
     var smoothingState: ScrollSmoothingState {
@@ -139,7 +142,8 @@ final class ScrollTransformer {
             previousAxis1: previousAxis1,
             previousAxis2: previousAxis2,
             inertiaCarryAxis1: inertiaCarryAxis1,
-            inertiaCarryAxis2: inertiaCarryAxis2
+            inertiaCarryAxis2: inertiaCarryAxis2,
+            lastTransformedScrollTimestamp: lastTransformedScrollTimestamp
         )
     }
     #endif
@@ -230,6 +234,11 @@ final class ScrollTransformer {
         var afterSmoothingAxis1 = smoothingInputAxis1
         var afterSmoothingAxis2 = smoothingInputAxis2
         if config.smoothScroll {
+            prepareSmoothingState(
+                axis1: smoothingInputAxis1,
+                axis2: smoothingInputAxis2,
+                timestamp: event.timestamp
+            )
             (afterSmoothingAxis1, afterSmoothingAxis2) = applySmoothing(
                 axis1: smoothingInputAxis1,
                 axis2: smoothingInputAxis2,
@@ -240,6 +249,7 @@ final class ScrollTransformer {
             previousAxis2 = smoothingInputAxis2
             inertiaCarryAxis1 = 0
             inertiaCarryAxis2 = 0
+            lastTransformedScrollTimestamp = nil
         }
 
         let afterClampAxis1 = clampStep(afterSmoothingAxis1, maxStep: config.maxScrollStep)
@@ -317,6 +327,40 @@ final class ScrollTransformer {
             boundSmoothingState(config: config)
             return (outputAxis1, outputAxis2)
         }
+    }
+
+    private func prepareSmoothingState(
+        axis1: Double,
+        axis2: Double,
+        timestamp: CGEventTimestamp
+    ) {
+        if let previousTimestamp = lastTransformedScrollTimestamp {
+            if timestamp < previousTimestamp || timestamp - previousTimestamp >= Self.sequenceIdleGap {
+                resetSmoothingState()
+            }
+        }
+
+        if reversesDirection(previous: previousAxis1, current: axis1) {
+            previousAxis1 = 0
+            inertiaCarryAxis1 = 0
+        }
+        if reversesDirection(previous: previousAxis2, current: axis2) {
+            previousAxis2 = 0
+            inertiaCarryAxis2 = 0
+        }
+
+        lastTransformedScrollTimestamp = timestamp
+    }
+
+    private func resetSmoothingState() {
+        previousAxis1 = 0
+        previousAxis2 = 0
+        inertiaCarryAxis1 = 0
+        inertiaCarryAxis2 = 0
+    }
+
+    private func reversesDirection(previous: Double, current: Double) -> Bool {
+        previous != 0 && current != 0 && previous.sign != current.sign
     }
 
     private func boundSmoothingState(config: AppConfig) {
@@ -434,5 +478,6 @@ struct ScrollSmoothingState: Equatable {
     let previousAxis2: Double
     let inertiaCarryAxis1: Double
     let inertiaCarryAxis2: Double
+    let lastTransformedScrollTimestamp: CGEventTimestamp?
 }
 #endif

@@ -26,12 +26,18 @@ Only one action is sent each time the gesture button is held. The default moveme
 ## Install the app
 
 1. Open the [latest mx3-lite release](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest).
-2. Under **Assets**, download the file whose name starts with `mx3-lite-app-` and ends with `.zip`. Do not download the source ZIP unless you want to build the app yourself.
+2. Under **Assets**, download the app ZIP for your Mac:
+   - Apple Silicon (M1, M2, M3, M4, or newer): file ending in `macos-arm64.zip`
+   - Intel Mac: file ending in `macos-x86_64.zip`
+   Do not download GitHub's automatic source ZIP unless you want to build the app yourself.
 3. Open the downloaded ZIP.
 4. Move **mx3-lite.app** into your **Applications** folder.
 5. Control-click **mx3-lite.app**, choose **Open**, then confirm **Open**.
 
-The downloadable app is locally signed but not notarized by Apple, so macOS may say that it cannot verify the developer on first launch. Control-clicking and choosing Open approves this specific app without disabling Gatekeeper for the rest of your Mac.
+An official release should be Developer ID signed and notarized by Apple. If
+you build the validation archive yourself, it is only ad-hoc signed and macOS
+may require Control-click, **Open** on first launch. This approves that specific
+app without disabling Gatekeeper for the rest of your Mac.
 
 ## Allow macOS permissions
 
@@ -159,5 +165,9 @@ Your settings file is kept separately so an update or reinstall does not erase y
 ## For developers and terminal users
 
 Source-build instructions, terminal commands, configuration details, inspector mode, and debug tools are in the [technical guide](config/README.md).
+
+Maintainers preparing signed Apple Silicon and Intel downloads should follow
+the [public release guide](docs/PUBLIC_RELEASE.md). Release credentials are
+owner-controlled and are never stored in this repository.
 
 The project is native Swift. It does not use Electron, Node.js, Python, a kernel extension, a launch agent, or an auto-updater.

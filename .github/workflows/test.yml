@@ -41,3 +41,21 @@ jobs:
           bash scripts/build-app.sh
           test -f dist/mx3-lite.app/Contents/Resources/defaults.json
           test ! -e dist/mx3-lite.app/Contents/Resources/default-config.json
+
+  release-archives:
+    runs-on: macos-14
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release scripts
+        run: bash -n scripts/build-release-app.sh scripts/package-release.sh scripts/verify-release.sh
+      - name: Build and verify ${{ matrix.arch }} validation archive
+        run: bash scripts/package-release.sh --arch "${{ matrix.arch }}"
+      - name: Upload validation archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mx3-lite-${{ matrix.arch }}-validation
+          path: dist/releases/v*/
+          if-no-files-found: error

@@ -232,6 +232,140 @@ final class GestureStateTests: XCTestCase {
         XCTAssertTrue(state.isConsumed)
     }
 
+    func testStaleHoldUsesMonotonicEventTimestamp() {
+        let startedAt: CGEventTimestamp = 1_000
+        var state = GestureState()
+        state.begin(at: .zero, timestamp: startedAt)
+
+        XCTAssertFalse(state.isStale(at: startedAt - 1))
+        XCTAssertFalse(state.isStale(
+            at: startedAt + GestureState.staleHoldTimeout - 1
+        ))
+        XCTAssertTrue(state.isStale(
+            at: startedAt + GestureState.staleHoldTimeout
+        ))
+
+        state.end()
+        XCTAssertFalse(state.isStale(
+            at: startedAt + GestureState.staleHoldTimeout
+        ))
+        XCTAssertNil(state.startedAt)
+    }
+
+    func testStaleMovementCancelsWithoutConsumingTheEvent() throws {
+        let mapper = makeMapper()
+        var activityChanges: [Bool] = []
+        mapper.onGestureActivityChanged = { activityChanges.append($0) }
+        let startedAt: CGEventTimestamp = 1_000
+
+        XCTAssertTrue(mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(type: .otherMouseDown, timestamp: startedAt)
+        ))
+        XCTAssertFalse(mapper.handle(
+            type: .mouseMoved,
+            event: try movementEvent(
+                location: CGPoint(x: 10, y: 10),
+                timestamp: startedAt + GestureState.staleHoldTimeout
+            )
+        ))
+
+        XCTAssertEqual(activityChanges, [true, false])
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+
+        XCTAssertFalse(mapper.handle(
+            type: .mouseMoved,
+            event: try movementEvent(location: CGPoint(x: 20, y: 20), timestamp: startedAt)
+        ))
+        XCTAssertEqual(activityChanges, [true, false])
+    }
+
+    func testStaleScrollCancelsAndReturnsToInactiveScrollHandling() throws {
+        var config = AppConfig.default
+        config.scrollTransformMode = .disabled
+        let mapper = makeMapper(config: config)
+        var activityChanges: [Bool] = []
+        mapper.onGestureActivityChanged = { activityChanges.append($0) }
+        let startedAt: CGEventTimestamp = 10_000
+
+        _ = mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(type: .otherMouseDown, timestamp: startedAt)
+        )
+        let scroll = try XCTUnwrap(CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .line,
+            wheelCount: 2,
+            wheel1: 1,
+            wheel2: 0,
+            wheel3: 0
+        ))
+        scroll.timestamp = startedAt + GestureState.staleHoldTimeout
+
+        XCTAssertFalse(mapper.handle(type: .scrollWheel, event: scroll))
+        XCTAssertEqual(activityChanges, [true, false])
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+    }
+
+    func testStaleGestureButtonDownStartsANewGestureImmediately() throws {
+        var config = AppConfig.default
+        config.threshold = 10
+        config.downAction = .disabled
+        let mapper = makeMapper(config: config)
+        var activityChanges: [Bool] = []
+        mapper.onGestureActivityChanged = { activityChanges.append($0) }
+        let firstTimestamp: CGEventTimestamp = 100
+        let secondTimestamp = firstTimestamp + GestureState.staleHoldTimeout
+
+        _ = mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(type: .otherMouseDown, timestamp: firstTimestamp)
+        )
+        XCTAssertTrue(mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(
+                type: .otherMouseDown,
+                location: CGPoint(x: 25, y: 25),
+                timestamp: secondTimestamp
+            )
+        ))
+
+        XCTAssertEqual(activityChanges, [true, false, true])
+        XCTAssertTrue(mapper.gestureStateForTesting.isActive)
+        XCTAssertEqual(mapper.gestureStateForTesting.startedAt, secondTimestamp)
+
+        XCTAssertTrue(mapper.handle(
+            type: .mouseMoved,
+            event: try movementEvent(
+                location: CGPoint(x: 25, y: 36),
+                timestamp: secondTimestamp + 1
+            )
+        ))
+        XCTAssertTrue(mapper.gestureStateForTesting.isConsumed)
+    }
+
+    func testStaleGestureButtonUpCancelsOnlyOnce() throws {
+        let mapper = makeMapper()
+        var activityChanges: [Bool] = []
+        mapper.onGestureActivityChanged = { activityChanges.append($0) }
+        let startedAt: CGEventTimestamp = 1_000
+
+        _ = mapper.handle(
+            type: .otherMouseDown,
+            event: try buttonEvent(type: .otherMouseDown, timestamp: startedAt)
+        )
+        XCTAssertTrue(mapper.handle(
+            type: .otherMouseUp,
+            event: try buttonEvent(
+                type: .otherMouseUp,
+                timestamp: startedAt + GestureState.staleHoldTimeout
+            )
+        ))
+
+        XCTAssertEqual(activityChanges, [true, false])
+        assertInactiveAndCleared(mapper.gestureStateForTesting)
+    }
+
     private func makeMapper(config: AppConfig = .default) -> GestureMapper {
         let logger = DebugLogger(enabled: false)
         return GestureMapper(
@@ -244,8 +378,9 @@ final class GestureStateTests: XCTestCase {
 
     private func buttonEvent(
         type: CGEventType,
-        button: Int,
-        location: CGPoint = .zero
+        button: Int = 5,
+        location: CGPoint = .zero,
+        timestamp: CGEventTimestamp? = nil
     ) throws -> CGEvent {
         let event = try XCTUnwrap(CGEvent(
             mouseEventSource: nil,
@@ -254,16 +389,31 @@ final class GestureStateTests: XCTestCase {
             mouseButton: .center
         ))
         event.setIntegerValueField(.mouseEventButtonNumber, value: Int64(button))
+        if let timestamp {
+            event.timestamp = timestamp
+        }
         return event
     }
 
-    private func mouseEvent(type: CGEventType, location: CGPoint) throws -> CGEvent {
-        try XCTUnwrap(CGEvent(
+    private func mouseEvent(
+        type: CGEventType,
+        location: CGPoint,
+        timestamp: CGEventTimestamp? = nil
+    ) throws -> CGEvent {
+        let event = try XCTUnwrap(CGEvent(
             mouseEventSource: nil,
             mouseType: type,
             mouseCursorPosition: location,
             mouseButton: .left
         ))
+        if let timestamp {
+            event.timestamp = timestamp
+        }
+        return event
+    }
+
+    private func movementEvent(location: CGPoint, timestamp: CGEventTimestamp) throws -> CGEvent {
+        try mouseEvent(type: .mouseMoved, location: location, timestamp: timestamp)
     }
 
     private func assertInactiveAndCleared(
@@ -274,6 +424,7 @@ final class GestureStateTests: XCTestCase {
         XCTAssertFalse(state.isActive, file: file, line: line)
         XCTAssertFalse(state.isConsumed, file: file, line: line)
         XCTAssertNil(state.lastLocation, file: file, line: line)
+        XCTAssertNil(state.startedAt, file: file, line: line)
         XCTAssertEqual(state.accumulatedDx, 0, file: file, line: line)
         XCTAssertEqual(state.accumulatedDy, 0, file: file, line: line)
         XCTAssertEqual(state.accumulatedScrollX, 0, file: file, line: line)

@@ -198,6 +198,40 @@ final class ScrollHandlingTests: XCTestCase {
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventScrollCount), 7)
     }
 
+    func testIdleResetKeepsEveryVerticalDeltaRepresentationConsistent() throws {
+        let config = emaConfig()
+        let transformer = ScrollTransformer()
+        let first = try makeEvent(units: .pixel, axis1: 10)
+        first.timestamp = 1
+        _ = try apply(event: first, config: config, transformer: transformer)
+
+        let next = try makeEvent(units: .pixel, axis1: 10)
+        next.timestamp = 1 + ScrollTransformer.sequenceIdleGap
+        let result = try apply(event: next, config: config, transformer: transformer)
+
+        XCTAssertEqual(result.afterSmoothingAxis1, 6.5, accuracy: 0.0001)
+        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventDeltaAxis1), 6)
+        XCTAssertEqual(next.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1), 6.5, accuracy: 0.0001)
+        XCTAssertEqual(next.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), 65)
+    }
+
+    func testDirectionResetKeepsEveryHorizontalDeltaRepresentationConsistent() throws {
+        let config = emaConfig()
+        let transformer = ScrollTransformer()
+        let first = try makeEvent(units: .line, axis1: 0, axis2: 10)
+        first.timestamp = 1
+        _ = try apply(event: first, config: config, transformer: transformer)
+
+        let reversed = try makeEvent(units: .line, axis1: 0, axis2: -10)
+        reversed.timestamp = 2
+        let result = try apply(event: reversed, config: config, transformer: transformer)
+
+        XCTAssertEqual(result.afterSmoothingAxis2, -6.5, accuracy: 0.0001)
+        XCTAssertEqual(reversed.getIntegerValueField(.scrollWheelEventDeltaAxis2), -7)
+        XCTAssertEqual(reversed.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2), -6.5, accuracy: 0.0001)
+        XCTAssertEqual(reversed.getIntegerValueField(.scrollWheelEventPointDeltaAxis2), -65)
+    }
+
     func testDisabledAndUnclassifiedMXMasterOnlyEventsPassThrough() throws {
         var disabled = AppConfig.default
         disabled.scrollTransformMode = .disabled

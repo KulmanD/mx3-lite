@@ -76,12 +76,21 @@ final class GestureMapper {
         return suppressed
     }
 
+#if DEBUG
+    var gestureStateForTesting: GestureState {
+        gestureState
+    }
+#endif
+
     private func handleButtonDown(event: CGEvent) -> Bool {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
+        if gestureState.isActive {
+            _ = cancelGestureIfStale(event: event)
+        }
 
         switch GestureState.buttonDownDecision(button: button, buttons: config.buttons, gestureActive: gestureState.isActive) {
         case .beginGesture:
-            gestureState.begin(at: event.location)
+            gestureState.begin(at: event.location, timestamp: event.timestamp)
             onGestureActivityChanged?(true)
             logger.log("gesture start button=\(button) startLocation=\(event.location.compactDescription)")
             return true
@@ -99,11 +108,14 @@ final class GestureMapper {
 
     private func handleButtonUp(event: CGEvent) -> Bool {
         let button = Int(event.getIntegerValueField(.mouseEventButtonNumber))
+        let staleGestureCancelled = gestureState.isActive && cancelGestureIfStale(event: event)
 
         if matches(button, config.buttons.gesture) {
-            logger.log("gesture end button=\(button) final accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
-            gestureState.end()
-            onGestureActivityChanged?(false)
+            if !staleGestureCancelled {
+                logger.log("gesture end button=\(button) final accumulatedDx=\(format(gestureState.accumulatedDx)) accumulatedDy=\(format(gestureState.accumulatedDy)) accumulatedScrollX=\(format(gestureState.accumulatedScrollX)) accumulatedScrollY=\(format(gestureState.accumulatedScrollY))")
+                gestureState.end()
+                onGestureActivityChanged?(false)
+            }
             return true
         }
 
@@ -116,6 +128,9 @@ final class GestureMapper {
 
     private func handleMovement(type: CGEventType, event: CGEvent) -> Bool {
         guard gestureState.isActive else {
+            return false
+        }
+        guard !cancelGestureIfStale(event: event) else {
             return false
         }
 
@@ -135,14 +150,11 @@ final class GestureMapper {
 
     private func handleScroll(event: CGEvent) -> Bool {
         guard gestureState.isActive else {
-            if let result = scrollTransformer.apply(
-                to: event,
-                config: config,
-                mxMasterRegistry: mxMasterRegistry,
-                captureDebug: liveEventDebug
-            ) {
-                logger.log(result.debugDescription(prefix: "scroll transform"))
-            }
+            transformInactiveScroll(event: event)
+            return false
+        }
+        guard !cancelGestureIfStale(event: event) else {
+            transformInactiveScroll(event: event)
             return false
         }
 
@@ -156,6 +168,28 @@ final class GestureMapper {
         evaluateGesture(source: "scroll")
 
         return false
+    }
+
+    private func cancelGestureIfStale(event: CGEvent) -> Bool {
+        guard gestureState.isStale(at: event.timestamp) else {
+            return false
+        }
+
+        logger.log("stale gesture cancelled after \(Double(event.timestamp - (gestureState.startedAt ?? event.timestamp)) / 1_000_000_000) seconds")
+        gestureState.end()
+        onGestureActivityChanged?(false)
+        return true
+    }
+
+    private func transformInactiveScroll(event: CGEvent) {
+        if let result = scrollTransformer.apply(
+            to: event,
+            config: config,
+            mxMasterRegistry: mxMasterRegistry,
+            captureDebug: liveEventDebug
+        ) {
+            logger.log(result.debugDescription(prefix: "scroll transform"))
+        }
     }
 
     private func evaluateGesture(source: String) {

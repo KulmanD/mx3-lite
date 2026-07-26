@@ -42,17 +42,15 @@ enum MouseEventTapMode {
 final class MouseEventTap {
     private let mode: MouseEventTapMode
     private let configuredEventTypes: [CGEventType]
-    private let logger: DebugLogger?
     private var machPort: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var isStarted = false
     private var shouldBeEnabled = false
     private var recoveryMessagePrinted = false
 
-    init(mode: MouseEventTapMode, eventTypes: [CGEventType]? = nil, logger: DebugLogger? = nil) throws {
+    init(mode: MouseEventTapMode, eventTypes: [CGEventType]? = nil) throws {
         self.mode = mode
         self.configuredEventTypes = eventTypes ?? mode.eventTypes
-        self.logger = logger
         try createTap()
     }
 
@@ -119,7 +117,7 @@ final class MouseEventTap {
             if shouldBeEnabled, let machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
             }
-            logTapRecovery(type: type)
+            logTapRecovery()
             return Unmanaged.passUnretained(event)
         }
 
@@ -138,17 +136,12 @@ final class MouseEventTap {
         }
     }
 
-    private func logTapRecovery(type: CGEventType) {
-        if let logger, logger.isEnabled {
-            logger.log("event tap disabled type=\(type.label); gesture state recovered")
-            return
-        }
-
+    private func logTapRecovery() {
         guard !recoveryMessagePrinted else {
             return
         }
         recoveryMessagePrinted = true
-        FileHandle.standardError.writeLine("mx3-lite: event tap was disabled; gesture state recovered")
+        FileHandle.standardError.writeLine("mx3-lite: event tap re-enabled; gesture reset")
     }
 }
 

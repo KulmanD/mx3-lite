@@ -90,7 +90,7 @@ machine-specific defaults, and personal paths.
 - [x] source archive privacy/exclusion scan
 - [x] Start, Status, Stop lifecycle; no remaining process after Stop
 - [x] no worker runtime-source diff from #26
-- [ ] GitHub Actions architecture matrix
+- [x] GitHub Actions: 34 tests plus arm64 and x86_64 archive jobs
 - [ ] Developer ID signature and Apple notarization with owner credentials
 - [ ] Gatekeeper first launch on a clean Apple Silicon Mac
 - [ ] Gatekeeper first launch on a clean Intel Mac

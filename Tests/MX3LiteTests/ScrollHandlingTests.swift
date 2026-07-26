@@ -93,12 +93,14 @@ final class ScrollHandlingTests: XCTestCase {
         config.smoothScrollMode = .dampenSpikes
         config.freeSpinDamping = 0.75
         config.maxScrollStep = 8
+        let transformer = ScrollTransformer()
 
-        let result = try apply(axis1: 20, config: config, transformer: ScrollTransformer())
+        let result = try apply(axis1: 20, config: config, transformer: transformer)
 
         XCTAssertEqual(result.afterSmoothingAxis1, 6, accuracy: 0.0001)
         XCTAssertEqual(result.afterClampAxis1, 6, accuracy: 0.0001)
         XCTAssertEqual(result.finalAxis1, 6)
+        XCTAssertNil(transformer.smoothingState.lastTransformedScrollTimestamp)
     }
 
     func testInertiaStateRemainsBounded() throws {

@@ -193,6 +193,7 @@ The final choice and exact copyright-holder name remain owner decisions.
 | Main protection | Missing | Require CI and block force pushes/deletion |
 | Dependabot / secret / code scanning | Disabled | Enable the controls supported by the account plan |
 | Actions permissions | Read-only token default; all actions allowed | Keep read-only token; consider restricting allowed actions and pinning action SHAs |
+| Actions runtime | Passing, with Node.js 20 deprecation annotations for `actions/checkout@v4` and `actions/upload-artifact@v4` | Upgrade to Node.js 24-compatible action majors in a separate CI change after validating archive behavior |
 
 ## Branch audit before merge
 
@@ -222,6 +223,9 @@ Preserve `performance-baseline-v1` and release tags `v0.1.0`, `v0.2.0`, and
 - PR #40 was marked ready and merged normally into `main` as
   `31834f12d683bfc808f53becd4e6bd85dbea9411`.
 - The post-merge `main` Actions run `30267474904` completed successfully.
+- The final cleanup-documentation Actions run `30267681685` also completed
+  successfully; it retained the Node.js 20 action-runtime deprecation annotations
+  recorded above.
 - The following obsolete branches were deleted locally and remotely after
   ancestry, patch-equivalence, report, and closed-PR checks:
   - `fix/abort-stale-gesture-holds`

@@ -1,6 +1,6 @@
 # Performance report: standardize config defaults
 
-Tracking issue: [#26](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/26)
+Tracking issue: #26
 
 ## Decision
 

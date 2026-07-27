@@ -1,6 +1,6 @@
 # Performance report: event-tap interruption recovery
 
-Tracking issue: [#21](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/21)
+Tracking issue: #21
 
 ## Decision
 

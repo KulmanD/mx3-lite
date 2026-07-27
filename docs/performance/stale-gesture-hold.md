@@ -1,6 +1,6 @@
 # Performance report: stale gesture holds
 
-Tracking issue: [#23](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/23)
+Tracking issue: #23
 
 ## Decision
 

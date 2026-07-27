@@ -17,7 +17,7 @@
   "smoothScrollMode": "ema",
   "smoothScrollFactor": 0.35,
   "scrollDeadzone": 0,
-  "maxScrollStep": 5,
+  "maxScrollStep": 8,
   "scrollAcceleration": 1.0,
   "freeSpinDamping": 0.75,
   "ratchetStepMultiplier": 1.0,

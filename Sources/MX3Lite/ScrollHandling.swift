@@ -128,10 +128,13 @@ struct ScrollTransformResult {
 }
 
 final class ScrollTransformer {
+    static let sequenceIdleGap: CGEventTimestamp = 200_000_000
+
     private var previousAxis1 = 0.0
     private var previousAxis2 = 0.0
     private var inertiaCarryAxis1 = 0.0
     private var inertiaCarryAxis2 = 0.0
+    private var lastTransformedScrollTimestamp: CGEventTimestamp?
 
     #if DEBUG
     var smoothingState: ScrollSmoothingState {
@@ -139,7 +142,8 @@ final class ScrollTransformer {
             previousAxis1: previousAxis1,
             previousAxis2: previousAxis2,
             inertiaCarryAxis1: inertiaCarryAxis1,
-            inertiaCarryAxis2: inertiaCarryAxis2
+            inertiaCarryAxis2: inertiaCarryAxis2,
+            lastTransformedScrollTimestamp: lastTransformedScrollTimestamp
         )
     }
     #endif
@@ -211,8 +215,13 @@ final class ScrollTransformer {
             )
         }
 
-        var afterInversionAxis1 = Double(rawAxis1)
-        var afterInversionAxis2 = Double(rawAxis2)
+        let rawFixedAxis1 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+        let rawFixedAxis2 = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+        let inputAxis1 = canonicalDelta(integer: rawAxis1, fixed: rawFixedAxis1)
+        let inputAxis2 = canonicalDelta(integer: rawAxis2, fixed: rawFixedAxis2)
+
+        var afterInversionAxis1 = inputAxis1
+        var afterInversionAxis2 = inputAxis2
 
         if config.invertVerticalScroll {
             afterInversionAxis1 *= -1
@@ -230,6 +239,15 @@ final class ScrollTransformer {
         var afterSmoothingAxis1 = smoothingInputAxis1
         var afterSmoothingAxis2 = smoothingInputAxis2
         if config.smoothScroll {
+            if config.smoothScrollMode == .dampenSpikes {
+                lastTransformedScrollTimestamp = nil
+            } else {
+                prepareSmoothingState(
+                    axis1: smoothingInputAxis1,
+                    axis2: smoothingInputAxis2,
+                    timestamp: event.timestamp
+                )
+            }
             (afterSmoothingAxis1, afterSmoothingAxis2) = applySmoothing(
                 axis1: smoothingInputAxis1,
                 axis2: smoothingInputAxis2,
@@ -240,15 +258,28 @@ final class ScrollTransformer {
             previousAxis2 = smoothingInputAxis2
             inertiaCarryAxis1 = 0
             inertiaCarryAxis2 = 0
+            lastTransformedScrollTimestamp = nil
         }
 
         let afterClampAxis1 = clampStep(afterSmoothingAxis1, maxStep: config.maxScrollStep)
         let afterClampAxis2 = clampStep(afterSmoothingAxis2, maxStep: config.maxScrollStep)
-        let roundedAxis1 = Int64(afterClampAxis1.rounded())
-        let roundedAxis2 = Int64(afterClampAxis2.rounded())
+        let isContinuous = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+        let roundedAxis1 = integerDelta(afterClampAxis1, continuous: isContinuous)
+        let roundedAxis2 = integerDelta(afterClampAxis2, continuous: isContinuous)
+        // CoreGraphics-generated line and pixel events use ten points per fixed delta unit.
+        let pointAxis1 = roundedInt64(afterClampAxis1 * 10)
+        let pointAxis2 = roundedInt64(afterClampAxis2 * 10)
 
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: roundedAxis1)
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: roundedAxis2)
+        if inputAxis1 != 0 || afterClampAxis1 != 0 {
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: roundedAxis1)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: afterClampAxis1)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: pointAxis1)
+        }
+        if inputAxis2 != 0 || afterClampAxis2 != 0 {
+            event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: roundedAxis2)
+            event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: afterClampAxis2)
+            event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: pointAxis2)
+        }
 
         guard captureDebug else {
             return nil
@@ -288,6 +319,38 @@ final class ScrollTransformer {
         return adjusted < 0 ? -magnitude : magnitude
     }
 
+    private func canonicalDelta(integer: Int64, fixed: Double) -> Double {
+        if fixed.isFinite, fixed != 0 {
+            return fixed
+        }
+        return Double(integer)
+    }
+
+    private func integerDelta(_ value: Double, continuous: Bool) -> Int64 {
+        guard value.isFinite, value != 0 else {
+            return 0
+        }
+        // Match CoreGraphics pixel events while retaining the existing nearest-line behavior.
+        let rounded = roundedInt64(continuous ? value.rounded(.towardZero) : value.rounded())
+        if continuous, rounded == 0 {
+            return value < 0 ? -1 : 1
+        }
+        return rounded
+    }
+
+    private func roundedInt64(_ value: Double) -> Int64 {
+        guard value.isFinite else {
+            return 0
+        }
+        if value >= Double(Int64.max) {
+            return Int64.max
+        }
+        if value <= Double(Int64.min) {
+            return Int64.min
+        }
+        return Int64(value.rounded())
+    }
+
     private func applySmoothing(axis1: Double, axis2: Double, config: AppConfig) -> (Double, Double) {
         switch config.smoothScrollMode {
         case .ema:
@@ -317,6 +380,40 @@ final class ScrollTransformer {
             boundSmoothingState(config: config)
             return (outputAxis1, outputAxis2)
         }
+    }
+
+    private func prepareSmoothingState(
+        axis1: Double,
+        axis2: Double,
+        timestamp: CGEventTimestamp
+    ) {
+        if let previousTimestamp = lastTransformedScrollTimestamp {
+            if timestamp < previousTimestamp || timestamp - previousTimestamp >= Self.sequenceIdleGap {
+                resetSmoothingState()
+            }
+        }
+
+        if reversesDirection(previous: previousAxis1, current: axis1) {
+            previousAxis1 = 0
+            inertiaCarryAxis1 = 0
+        }
+        if reversesDirection(previous: previousAxis2, current: axis2) {
+            previousAxis2 = 0
+            inertiaCarryAxis2 = 0
+        }
+
+        lastTransformedScrollTimestamp = timestamp
+    }
+
+    private func resetSmoothingState() {
+        previousAxis1 = 0
+        previousAxis2 = 0
+        inertiaCarryAxis1 = 0
+        inertiaCarryAxis2 = 0
+    }
+
+    private func reversesDirection(previous: Double, current: Double) -> Bool {
+        previous * current < 0
     }
 
     private func boundSmoothingState(config: AppConfig) {
@@ -434,5 +531,6 @@ struct ScrollSmoothingState: Equatable {
     let previousAxis2: Double
     let inertiaCarryAxis1: Double
     let inertiaCarryAxis2: Double
+    let lastTransformedScrollTimestamp: CGEventTimestamp?
 }
 #endif

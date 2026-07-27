@@ -23,7 +23,7 @@ install -m 755 .build/release/mx3-lite-app "$CONTENTS/MacOS/mx3-lite-app"
 install -m 755 .build/release/mx3-lite "$CONTENTS/Helpers/mx3-lite"
 install -m 644 app/Info.plist "$CONTENTS/Info.plist"
 install -m 644 config/README.md "$CONTENTS/Resources/README.md"
-install -m 644 config/denis-config.json "$CONTENTS/Resources/default-config.json"
+install -m 644 config/defaults.json "$CONTENTS/Resources/defaults.json"
 install -m 644 docs/PERFORMANCE.md "$CONTENTS/Resources/PERFORMANCE.md"
 install -m 644 docs/APP_ARCHITECTURE.md "$CONTENTS/Resources/APP_ARCHITECTURE.md"
 

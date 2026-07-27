@@ -314,7 +314,7 @@ struct CLI {
         mxMasterRegistry.start()
 
         let debugger = ScrollDebugger(config: loadedConfig.config, logger: logger, mxMasterRegistry: mxMasterRegistry)
-        let eventTap = try MouseEventTap(mode: .debugScroll(debugger), logger: logger)
+        let eventTap = try MouseEventTap(mode: .debugScroll(debugger))
 
         let signalController = SignalController()
         signalController.start {
@@ -352,10 +352,9 @@ struct CLI {
         let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: debug, mxMasterRegistry: mxMasterRegistry)
         let eventTap = try MouseEventTap(
             mode: .map(mapper),
-            eventTypes: debug ? nil : mapper.primaryEventTypes,
-            logger: logger
+            eventTypes: debug ? nil : mapper.primaryEventTypes
         )
-        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: !debug, logger: logger)
+        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: !debug)
 
         let signalController = SignalController()
         signalController.start {
@@ -399,8 +398,8 @@ struct CLI {
         }
 
         let mapper = GestureMapper(config: config, logger: logger, liveEventDebug: false, mxMasterRegistry: mxMasterRegistry)
-        let eventTap = try MouseEventTap(mode: .map(mapper), eventTypes: mapper.primaryEventTypes, logger: logger)
-        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: true, logger: logger)
+        let eventTap = try MouseEventTap(mode: .map(mapper), eventTypes: mapper.primaryEventTypes)
+        let movementEventTap = try makeMovementEventTap(for: mapper, shouldCreate: true)
 
         let signalController = SignalController()
         signalController.start {
@@ -419,8 +418,7 @@ struct CLI {
 
     private func makeMovementEventTap(
         for mapper: GestureMapper,
-        shouldCreate: Bool,
-        logger: DebugLogger
+        shouldCreate: Bool
     ) throws -> MouseEventTap? {
         guard shouldCreate, !mapper.movementEventTypes.isEmpty else {
             return nil
@@ -428,8 +426,7 @@ struct CLI {
 
         let movementEventTap = try MouseEventTap(
             mode: .map(mapper),
-            eventTypes: mapper.movementEventTypes,
-            logger: logger
+            eventTypes: mapper.movementEventTypes
         )
         mapper.onGestureActivityChanged = { [weak movementEventTap] isActive in
             movementEventTap?.setEnabled(isActive)

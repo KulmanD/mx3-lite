@@ -104,7 +104,7 @@ Required project files/folders:
 - `app/`
 - `scripts/`
 - `config/README.md`
-- `config/denis-config.json`
+- `config/defaults.json`
 - `docs/PERFORMANCE.md`
 - `docs/APP_ARCHITECTURE.md`
 - `.gitignore` if present
@@ -113,7 +113,8 @@ Do not share/build artifacts unless needed:
 
 - `.build/` can be omitted
 - `/usr/local/bin/mxmaster` should not be copied manually because it points to a machine-specific path
-- `~/Library/Application Support/mx3-lite/config.json` is user-specific and optional. This zip includes a copy at `config/denis-config.json`.
+- `~/Library/Application Support/mx3-lite/config.json` is user-specific and optional. It is not copied into the sharing ZIP.
+- `config/defaults.json` is the neutral source of truth for generated compiled defaults.
 
 Recommended sharing package:
 
@@ -130,9 +131,9 @@ unzip mx3-lite.zip
 cd mx3-lite
 bash scripts/install.sh
 
-# Optional: install the bundled config from this zip.
+# Optional on a new installation only: start from the bundled defaults.
 mkdir -p "$HOME/Library/Application Support/mx3-lite"
-cp config/denis-config.json "$HOME/Library/Application Support/mx3-lite/config.json"
+cp config/defaults.json "$HOME/Library/Application Support/mx3-lite/config.json"
 
 mxmaster config
 mxmaster on
@@ -151,7 +152,7 @@ Notes:
 - The wrapper points to the local project path at install time.
 - If the project folder is moved later, run `bash scripts/install.sh` again.
 - The config file lives separately at `~/Library/Application Support/mx3-lite/config.json`.
-- The bundled config lives in the project at `config/denis-config.json`; copy it to the config path above to use these exact settings.
+- The neutral defaults file lives at `config/defaults.json`. Do not copy it over an existing user config unless you intend to replace your settings.
 - Button IDs may differ on another Mac or connection method, so use inspect/debug if needed.
 
 Helper commands:
@@ -231,6 +232,12 @@ hid product="MX Master 3" usagePage=0x9 usage=0x4 button=4 value=1
 ```
 
 ## Configure
+
+`config/defaults.json` is the one editable authority for first-run values.
+`scripts/generate-config-defaults.swift` generates target-local constants for
+the terminal worker and native app, and CI rejects stale generated files. The
+worker does not parse the bundled file at runtime. Existing user config files
+are never silently migrated or overwritten.
 
 Create the default config file:
 

@@ -9,7 +9,7 @@ jobs:
   swift:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify generated config defaults
         run: swift scripts/generate-config-defaults.swift --check
       - name: Run unit tests
@@ -48,7 +48,7 @@ jobs:
       matrix:
         arch: [arm64, x86_64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check release scripts
         run: bash -n scripts/build-release-app.sh scripts/package-release.sh scripts/verify-release.sh
       - name: Build and verify ${{ matrix.arch }} validation archive

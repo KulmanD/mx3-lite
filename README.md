@@ -146,9 +146,37 @@ Keep **Balanced (EMA)** selected and reduce the smoothing factor, or turn smooth
 - No automatic updates
 - No login item or launch agent
 - No background logging during normal use
-- Event-driven worker with approximately zero CPU use while idle
+- Event-driven worker with no polling or periodic status checks
 
 The settings window does not need to remain open. Only the lightweight worker stays running after Start.
+
+## Measured performance
+
+The final candidate helper is `433,528 bytes`, an increase of `976 bytes`
+(`0.226%`) over the frozen baseline. Its `__TEXT` segment is `212,992 bytes`,
+equal to the baseline.
+
+In one controlled 150.086-second idle run on an Apple Silicon Mac with macOS
+26.5.1 and an MX Master 3S connected, the worker recorded zero CPU-time growth,
+zero package-idle and interrupt wakeups, two stable threads, and flat memory.
+RSS was approximately `10.1 MiB`; physical footprint was approximately
+`3.22 MiB`, which is substantially lower than RSS. No network sockets or
+normal-mode log files were open. These values describe this specific run, not
+a guarantee for every Mac or workload.
+
+See the [complete performance report](docs/performance/final-feature-candidate.md)
+for the environment, exact measurements, interpretation, and remaining tests.
+Maintainers can reproduce the same measurement shape with:
+
+```bash
+bash scripts/performance/measure-candidate.sh \
+  --label final-feature-candidate-clean \
+  --runs 1 \
+  --duration 150 \
+  --interval 30 \
+  --warmup 10 \
+  --skip-build
+```
 
 ## Remove mx3-lite
 

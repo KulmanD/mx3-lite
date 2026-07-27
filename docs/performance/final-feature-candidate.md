@@ -5,13 +5,15 @@ tooling, and all accepted runtime changes. Rejected Issue #22 remains excluded.
 
 ## Decision
 
-- Status: implementation and static validation complete; maintainer runtime
-  measurements, physical-device checks, and owner publication gates remain.
+- Status: implementation, static validation, packaging, and one controlled
+  clean-idle measurement are complete; physical-device checks and owner
+  publication gates remain.
 - Functional result: all accepted issue branches coexist in one buildable,
   packageable source tree.
 - Runtime result: exactly the same 433528-byte helper and 212992-byte `__TEXT`
   segment as the optimized runtime-only branch.
-- Merge gate: keep this candidate draft until delegated measurements are added.
+- Merge gate: keep this candidate draft until the physical validation matrix is
+  recorded.
 
 ## Revisions
 
@@ -19,7 +21,7 @@ tooling, and all accepted runtime changes. Rejected Issue #22 remains excluded.
 | --- | --- | --- | ---: | ---: |
 | Frozen baseline | `performance-baseline-v1` | `32dd84159d1feb05b57d9503624d5f8f2704d228` | 432552 | 212992 |
 | Runtime-only candidate | `perf/all-runtime-integration` | `96001c8` | 433528 | 212992 |
-| Complete candidate | `release/final-feature-candidate` | `b95b7dd` | 433528 | 212992 |
+| Measured complete candidate | `release/final-feature-candidate` | `727060fb03ad76d752d413db41bfa5d5132e3dc8` | 433528 | 212992 |
 
 The complete helper SHA-256 is
 `d7b5a19b7530ac5207e7c781c64d6b7d7dd8980f7badfbb568e03553d134916b`.
@@ -52,11 +54,92 @@ merged without conflict.
 | Standard uncompressed app file bytes | 1389978 | 1392244 | +2266 |
 | Apple Silicon validation ZIP | not applicable | 439759 | - |
 | Intel validation ZIP | not applicable | 451821 | - |
-| Persistent worker threads | 2 baseline | no new thread in source | pending repeated run |
+| Persistent worker threads | 2 baseline | 2 in the controlled idle run | 0 |
 
 The standard app and architecture validation archives use the final complete
 tree. App-size deltas include the 976-byte helper change, neutral defaults
 resource/documentation updates, and code-signature/compression variation.
+
+## Controlled clean-idle measurement
+
+### Environment
+
+| Item | Value |
+| --- | --- |
+| Measured commit | `727060fb03ad76d752d413db41bfa5d5132e3dc8` |
+| Branch | `release/final-feature-candidate` |
+| macOS | 26.5.1 (25F80) |
+| Architecture | Apple Silicon / arm64 |
+| Mouse | Logitech MX Master 3S |
+| Vendor / product ID | `0x046D` / `0xB034` |
+| Accessibility / Input Monitoring | granted / granted |
+| Worker before measurement | stopped |
+| Config | parsed successfully |
+| Action backend | `systemEvents` |
+| Scroll transform | `mxMasterOnly` |
+| Smoothing | `ema`, enabled |
+| Gesture threshold | `220` |
+
+The release helper was already built and the worker was stopped before the
+measurement. The exact command was:
+
+```bash
+bash scripts/performance/measure-candidate.sh \
+  --label final-feature-candidate-clean \
+  --runs 1 \
+  --duration 150 \
+  --interval 30 \
+  --warmup 10 \
+  --skip-build
+```
+
+### Raw result
+
+| Metric | Result |
+| --- | ---: |
+| Measured duration | `150.086 seconds` |
+| Worker CPU-time delta | `0.000000000 seconds` |
+| Average CPU usage | `0.000000% of one core` |
+| Package-idle wakeup delta | `0` |
+| Interrupt-wakeup delta | `0` |
+| Context-switch delta | `0` |
+| Mach syscall delta | `0` |
+| Unix syscall delta | `0` |
+| Threads | `2`, stable |
+| RSS minimum / maximum | `10,600,448 / 10,600,448 bytes` |
+| Physical footprint minimum / maximum | `3,375,584 / 3,375,584 bytes` |
+| Network sockets | `0` |
+| Normal log files open | `0` |
+| Worker stopped afterward | yes |
+
+RSS was approximately 10.1 MiB, while physical footprint was approximately
+3.22 MiB. The two measurements describe different memory concepts and must not
+be treated as interchangeable. Both remained flat during this run.
+
+The original machine-local evidence directory was
+`/tmp/mx3-lite-final-feature-candidate-clean-20260727T094422Z`. That path records
+where this run was captured and is not accessible on another Mac.
+
+### Framework allocation report
+
+Apple's `leaks` utility reported seven allocations totaling 496 bytes. The root
+object was `GPProcessMonitor`, with child allocations inside Apple `IOHIDLib`.
+No project-owned or `mx3-lite` symbol appeared in the allocation chain, and RSS
+and physical footprint did not grow during the measurement. This is recorded as
+a stable framework-rooted process-lifetime allocation for this run, not as
+proof that the application is universally leak-free.
+
+### Interpretation and limitations
+
+This controlled run passed the integrated idle CPU, wakeup, thread, memory
+stability, socket, logging, and stop-lifecycle gates. It demonstrates no
+measured background activity during this specific 150-second window; it does
+not establish that every machine, input workload, reconnect, or sleep cycle
+will produce identical counters.
+
+An earlier run that included active gesture use is intentionally excluded from
+idle evidence. Physical behavior and combined active input remain separate
+manual gates.
 
 ## Validation performed
 
@@ -75,22 +158,35 @@ resource/documentation updates, and code-signature/compression variation.
 - [x] Start, Status, Stop; no worker remains
 - [x] No launch agent, login item, updater, telemetry, or normal log added
 - [x] GitHub Actions: 56 tests plus arm64 and x86_64 archive jobs
-- [ ] Three strict-idle maintainer runs from this complete branch
+- [x] One controlled 150-second integrated clean-idle measurement
 - [ ] Combined active gesture and scroll workload
 - [ ] Physical MX Master and MacBook trackpad validation
 
-## Deferred maintainer command
+## Remaining physical validation
 
-Run from `release/final-feature-candidate`:
+The following checks remain pending and are not implied by the idle result:
 
-```bash
-bash scripts/performance/measure-candidate.sh \
-  --label final-feature-candidate
-```
+- Gesture left, right, and up
+- One action per gesture-button hold
+- Stale gesture cancellation
+- Back and forward buttons
+- Ratchet and free-spin scrolling
+- Scroll direction reversal and pause recovery
+- MacBook trackpad pass-through
+- Mouse power cycle
+- Mouse disconnect and reconnect
+- Mac sleep and wake
 
-Then verify gesture left/right/up, one action per hold, side-button suppression,
-missed-release recovery, ratchet and free-spin scrolling, direction reversals,
-scroll pauses, trackpad coexistence, and sleep/reconnect behavior.
+To reproduce the idle measurement, build the release helper first when needed,
+then run the command in the controlled-measurement section. Review the generated
+summary and raw evidence before recording another result; do not commit raw
+machine-local evidence directories.
+
+After the physical matrix passes, the only deferred blueprint-derived
+optimization worth considering is a development-only comparison of
+`systemEvents` and `cgEvent` with 0, 2, 5, and 10 ms keypress hold durations.
+That experiment is not part of this candidate and does not block documenting
+the current result.
 
 ## Publication gates
 
@@ -110,6 +206,6 @@ public visibility, and signed-out release-link checks remain owner actions.
 - Tests and performance scripts are excluded from app and sharing archives.
 - User configuration is not migrated or rewritten.
 
-This complete tree is the branch the maintainer should measure. Isolated
-branches remain useful evidence, but should not be merged individually once
-this candidate is accepted.
+This complete tree is the branch for the remaining physical validation.
+Isolated branches remain useful evidence, but should not be merged individually
+once this candidate is accepted.

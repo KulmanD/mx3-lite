@@ -2,253 +2,190 @@
 
 Audit date: 2026-07-27
 
-Candidate branch: `release/final-feature-candidate`
-
-Audited candidate commit: `19892e7c02e092af4205a3166bdbf70b00140106`
+Source baseline: `main` at `74d3bee6d9500e4a56f0062ec34b9c36d0443d42`
 
 Runtime measurement commit: `727060fb03ad76d752d413db41bfa5d5132e3dc8`
 
-This report separates source publication from official binary distribution. It
-does not grant legal approval, select a license, change repository visibility,
-or authorize release assets.
+This report separates source repository publication from future official
+binary distribution. It does not change repository visibility, delete releases
+or tags, modify GitHub settings, or authorize application binaries.
 
 ## Executive status
 
 | Distribution step | Status | Reason |
 | --- | --- | --- |
-| Keep developing and testing privately | ready | Source, CI, measurements, physical validation, and packaging evidence are present |
-| Make the source repository public | blocked on owner decisions | A license is missing; commit-email and historical release-asset exposure require explicit acceptance or cleanup |
-| Publish unsigned source-build instructions | blocked on the same source-publication decisions | The instructions are accurate, but public redistribution terms are undefined without a license |
-| Publish official app binaries | not ready | Developer ID signing, notarization, stapling, clean-machine tests, and final public assets remain incomplete |
+| Keep developing and testing privately | Ready | Source, CI, measurements, physical validation, and packaging evidence are present |
+| Publish the source tree | Ready after this documentation branch is merged | The MIT license, security policy, generic configuration naming, and source installation guidance are present |
+| Make the GitHub repository public | Pending final manual GitHub actions | Remove the obsolete v0.2.0 and v0.3.0 release entries after explicit confirmation, then enable the selected public security controls and verify the repository while signed out |
+| Publish official app binaries | Not ready | Developer ID signing, hardened runtime, notarization, stapling, clean-machine tests, checksums, and public download verification remain incomplete |
 
-## Audit scope
+## Completed owner decisions
 
-The audit covered:
+- License: MIT.
+- Copyright notice: `Copyright (c) 2026 Denis Kulman`.
+- The historical commit email `kulmand@post.bgu.ac.il` is accepted for public
+  disclosure.
+- Git history will not be rewritten.
+- The historical personal configuration filename does not require a history
+  rewrite. Its contents were ordinary settings, not a credential.
+- Current configuration names must remain generic.
+- Obsolete ad-hoc application binaries must not be presented as current or
+  official downloads.
 
-- the current tracked tree and ignored/generated-file boundaries
-- all reachable local and remote branches and tags after `git fetch --all --prune --tags`
-- filenames and unique blobs reachable from every Git ref
-- commit authors, committers, and email metadata
-- secret, credential, certificate, personal-path, email, phone, config, build-cache, log, crash, and large-blob patterns
-- Swift package dependencies, framework imports, scripts, and generated app icon source
-- PR #40 plus all listed open, closed, and merged pull requests
-- repository description, topics, visibility, branch protection, rulesets, and community files
-- GitHub Actions workflow permissions, all 53 listed run logs, and all 12
-  retained validation-artifact ZIPs
-- tags, published releases, checksums, and extracted v0.2.0/v0.3.0 assets
+## Source repository publication readiness
 
-`gitleaks` and `trufflehog` were not installed, so this audit used Git object and
-content scans plus GitHub/API inspection. Pattern scans reduce risk but cannot
-prove that no unknown secret format exists. Enable GitHub secret scanning and
-push protection before public visibility where the account plan supports them.
-
-## Findings
-
-### Current tree
+### Current-tree audit
 
 - No API key, access token, password, private key, certificate, provisioning
   profile, Apple credential, `.env` file, personal home path, phone number,
-  personal address, user config, tracked build cache, tracked `.DS_Store`, log,
-  crash dump, or release binary was found in the current tracked tree.
+  personal address, user configuration, tracked build cache, tracked
+  `.DS_Store`, log, crash dump, or release binary was found in the tracked tree.
 - `.build/`, `dist/`, `DerivedData/`, `.swiftpm/`, and `.DS_Store` are ignored.
-  Local copies exist in the checkout but are not tracked.
-- The only absolute home paths in tracked source are synthetic
-  `/Users/test/...` lifecycle-test fixtures.
 - No runtime networking, telemetry, updater, login-item, or launch-agent API was
   identified. Documentation references those terms only to state their absence.
+- `Package.swift` declares no external Swift package dependency. Runtime imports
+  are Apple system frameworks.
+- No vendored third-party source, third-party image, copied license header, or
+  acknowledgement requirement was identified.
 
-### Full Git history
+Pattern and Git-object scans reduce risk but cannot prove that no unknown secret
+format exists. Dependabot alerts are enabled. Secret scanning and code scanning
+were not enabled at the time of this update.
 
-| Finding | Severity | Evidence | Required action |
+### License and security policy
+
+- Root `LICENSE` contains the canonical MIT License with the owner-selected
+  holder and year.
+- Root `SECURITY.md` supports the latest `main` source, rejects public
+  vulnerability disclosure, directs future reports to GitHub private
+  vulnerability reporting once enabled, and directs ordinary bugs to Issues.
+- GitHub should detect the MIT License after this branch is merged into `main`.
+
+### Generic configuration verification
+
+- The editable default configuration is `config/defaults.json`.
+- App build scripts copy it as `Contents/Resources/defaults.json`.
+- Generated compiled defaults are checked against the same neutral file.
+- The runtime user configuration remains
+  `~/Library/Application Support/mx3-lite/config.json`.
+- Packaging excludes the user-specific runtime configuration.
+- No tracked owner home path or active owner-specific configuration filename
+  exists.
+- Current-tree matches for the retired app resource name are negative CI checks
+  that reject it.
+
+Historical commits and tags still contain the retired personal configuration
+filename. The owner has accepted that history, so no rewrite is required.
+
+### Existing releases and assets
+
+The release assets were downloaded and re-inspected on 2026-07-27. Their GitHub
+digests matched the downloaded files.
+
+| Release | Exact assets | Finding | Recommendation |
 | --- | --- | --- | --- |
-| No credential or private-key pattern found | none observed | Every reachable unique blob was scanned for common token, key, certificate, Apple credential, personal-path, email, and phone patterns | Enable platform secret scanning as an additional gate; no credential revocation is indicated by this audit |
-| Historical personal config filename | low privacy/presentation | Blob `aa5cde3c83a6b72429073463d059cb291848fe99` appeared as `config/denis-config.json`; added by `52816c7` and removed by `ffb3d01` | Contents are ordinary mouse settings with no credential or identity value. History rewriting is unnecessary for security, but the owner must accept the personal filename becoming public or clean history deliberately before visibility changes |
-| Commit author email | owner privacy decision | Reachable commits expose `kulmand@post.bgu.ac.il` in author/committer metadata | Accept public disclosure or rewrite authors with `git filter-repo` before publication. Changing only future Git config will not alter existing commits |
+| `v0.2.0` | `mx3-lite-v0.2.0.zip`; `mx3-lite-v0.2.0.zip.sha256` | The source ZIP contains the retired personal configuration filename and predates the final candidate | Delete the GitHub release entry and both assets; retain tag `v0.2.0` |
+| `v0.3.0` | `mx3-lite-app-v0.3.0.zip`; `mx3-lite-app-v0.3.0.zip.sha256`; `mx3-lite-source-v0.3.0.zip`; `mx3-lite-source-v0.3.0.zip.sha256` | The source ZIP contains the retired personal configuration filename; the app ZIP is ad-hoc signed, thin `arm64`, has no Team ID, contains the retired app resource name, and fails Gatekeeper assessment | Delete the GitHub release entry and all four assets; retain tag `v0.3.0` |
 
-No credential requires revocation based on the material inspected. Do not rewrite
-history automatically: rewriting would replace commit SHAs referenced by the
-performance reports, tags, PRs, and release evidence.
+The README no longer links to `releases/latest` or presents either release as a
+current download. It recommends installation from the current source until an
+official signed and notarized release exists.
 
-### Dependencies and assets
+Deletion is intentionally pending explicit owner confirmation. These commands
+delete the release entries and their assets without deleting the Git tags:
 
-- `Package.swift` declares no external Swift package dependency.
-- Runtime imports are Apple system frameworks such as Foundation, CoreGraphics,
-  IOKit, AppKit, SwiftUI, Combine, Dispatch, and Darwin.
-- No vendored third-party source, third-party image, acknowledgement requirement,
-  or copied license header was identified.
-- The app icon is generated by `scripts/generate-app-icon.swift`; the README PNG
-  is generated from that same repository source.
-- Repository inspection cannot prove authorship. The owner should confirm that
-  the icon design and all submitted source are theirs to license.
+```sh
+gh release delete v0.2.0 \
+  --repo KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased --yes
+gh release delete v0.3.0 \
+  --repo KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased --yes
+```
 
-### Existing releases and Actions artifacts
+Do not add `--cleanup-tag`; the `v0.2.0` and `v0.3.0` tags must remain.
 
-| Item | Result | Publication impact |
-| --- | --- | --- |
-| v0.2.0 source ZIP | Checksum passed; contains `config/denis-config.json`; no secret or personal path was found | Old personal filename becomes visible when the repository is public |
-| v0.3.0 source ZIP | Checksum passed; contains `config/denis-config.json`; no secret or personal path was found | Predates the neutral defaults and final candidate |
-| v0.3.0 app ZIP | Ad-hoc signed, thin `arm64`, no Team ID, and contains the old `default-config.json` resource | Must not be presented as an official signed or current multi-architecture binary |
-| Final-candidate Actions artifacts | Separate arm64 and x86_64 validation ZIPs; checksums passed; neutral `defaults.json`; no sensitive path found | Suitable as CI validation evidence only; default signing is ad hoc |
-| Actions logs | All 53 listed run logs were scanned; no owner home path, commit email, Apple credential replacement, private-key marker, or common token marker was found | Recheck after future runs and after visibility changes |
-| Retained Actions artifacts | All 12 retained validation ZIPs were downloaded and scanned; no sensitive entry or content match was found | Validation-only archives remain ad-hoc signed |
+### Preserved runtime and packaging evidence
 
-Before public visibility, the owner must decide whether to retain, remove, or
-clearly archive the v0.2.0/v0.3.0 assets. A new official release must be built
-from the final source state and must not reuse the old app ZIP.
-
-## Ready
-
-- Final candidate source is integrated without the rejected CGEvent-delta change.
-- CI passed generated-default, unit-test, release-build, linkage, source-archive,
-  app-resource, arm64 archive, and x86_64 archive checks.
-- The release helper is 433,528 bytes with a 212,992-byte `__TEXT` segment.
+- No Swift runtime source or configuration behavior changes in this publication
+  branch.
+- The release helper remains 433,528 bytes with a 212,992-byte `__TEXT` segment.
 - One controlled 150.086-second idle run recorded zero CPU-time and wakeup
   growth, two stable threads, flat RSS and physical footprint, zero sockets, and
   zero normal-mode log files.
 - One MX Master 3S on macOS 26.5.1 passed the maintainer-run gesture, button,
   scrolling, trackpad, reconnect, power-cycle, sleep/wake, and lifecycle matrix.
-- Current source and app archive scripts exclude user config, tests, performance
-  probes, build caches, Git metadata, and personal paths.
+- Source and app archive scripts exclude user config, tests, performance probes,
+  build caches, Git metadata, and personal paths.
 - Separate Apple Silicon and Intel validation packages build successfully.
-- README, technical guide, architecture report, performance evidence, and public
-  release procedure are present.
+- The source sharing archive includes `LICENSE` after this branch change.
 
-## Must complete before public visibility
+## Remaining manual GitHub actions
 
-1. **Select a license and exact copyright-holder name.** This is the hard legal
-   blocker. Do not call the project open source until the license is committed.
-2. **Decide whether the existing commit email may be public.** If not, perform a
-   planned history rewrite before visibility changes and update every SHA-based
-   report, tag, PR reference, and release reference afterward.
-3. **Decide how to handle the historical personal config filename and existing
-   v0.2.0/v0.3.0 assets.** No secret was found, but they are old and not the final
-   public distribution state.
-4. **Review repository presentation.** The description is suitable and topics
-   currently include `macos`, `swift`, `logitech`, `mx-master`, `mouse`, and
-   `accessibility`. Consider adding `native-app` and `performance`, and set a
-   custom social preview.
-5. **Protect `main`.** No branch protection or ruleset is configured. Require the
-   Test workflow and block force pushes/deletion before accepting public changes.
-6. **Enable security controls.** Dependabot alerts, secret scanning, and code
-   scanning are currently disabled. Actions have read-only default token
-   permissions, which is good, but all third-party actions are allowed and SHA
-   pinning is not required.
-7. **Review public collaboration surfaces.** `CONTRIBUTING.md`, `SECURITY.md`,
-   issue templates, a pull request template, changelog, and code of conduct are
-   absent. Add the files that match the intended contribution model.
-8. **Review every public issue, PR, Actions log, artifact, tag, and release.**
-   Closed discussions and old artifacts become visible with the repository.
-9. **Verify while signed out.** After visibility changes, verify README links,
-   badges, source access, release links, and issue/report links in a private
-   browser window.
+Before changing repository visibility:
 
-## Must complete before official binary distribution
+1. Merge this source-publication PR after all required checks pass.
+2. Confirm and delete the obsolete `v0.2.0` and `v0.3.0` release entries using
+   the exact commands above. Retain all Git tags.
+3. Review the two open Dependabot action-major PRs independently; they are not
+   part of this publication change.
+4. Review public issues, pull requests, Actions logs, artifacts, tags, and release
+   history for presentation context.
 
-1. Enroll in the Apple Developer Program.
-2. Obtain a Developer ID Application certificate.
-3. Build both architecture-specific apps from the final release commit.
-4. Sign the helper, settings executable, and app with hardened runtime.
-5. Submit both app archives for Apple notarization.
-6. Staple and validate the notarization ticket.
-7. Run Gatekeeper verification on fresh extractions.
-8. Test first launch, permissions, Start/Stop, gestures, scrolling, and uninstall
-   on a clean Apple Silicon Mac.
-9. Repeat the clean-machine test on an Intel Mac.
-10. Generate and verify final SHA-256 checksums.
-11. Publish only the final signed assets and verify downloads while signed out.
+At and immediately after the visibility change:
 
-The repository's existing app release is not a substitute for these steps.
+1. Change visibility only through the repository owner's GitHub settings.
+2. Enable private vulnerability reporting and confirm the **Report a
+   vulnerability** route is visible.
+3. Enable secret scanning and push protection where the account plan supports
+   them.
+4. Enable code scanning if the owner wants an additional automated security
+   gate.
+5. Confirm GitHub detects the MIT License.
+6. Verify README links, badges, source access, issue/report routes, tags, and the
+   absence of obsolete release downloads while signed out in a private browser
+   window.
 
-## License decision note
+Optional presentation work includes adding the `native-app` and `performance`
+topics, setting a repository-owned social preview, adding a contribution guide,
+and adding issue and pull request templates.
 
-### MIT
+## Current GitHub control snapshot
 
-- Short, familiar, and permissive.
-- A practical fit for a small native utility and broad community reuse.
-- Requires preservation of the copyright and license notice.
-- Does not include the explicit patent grant language found in Apache-2.0.
-
-### Apache-2.0
-
-- Permissive and business-friendly.
-- Includes an explicit contributor patent grant and patent-termination terms.
-- Longer and more formal, with NOTICE-related considerations when applicable.
-
-**Recommendation:** MIT is the simpler default for this small, dependency-free
-utility unless the owner specifically wants Apache-2.0's explicit patent terms.
-The final choice and exact copyright-holder name remain owner decisions.
-
-## Community and repository recommendations
-
-| Item | Current state | Recommendation |
+| Control | State on 2026-07-27 | Publication action |
 | --- | --- | --- |
-| Description | Present and accurate | Keep |
-| Topics | Six relevant topics | Add `native-app` and `performance` if desired |
-| Social preview | Not independently verified | Add a clean repository-owned image |
-| Contributing guide | Missing | Add after contribution and license terms are decided |
-| Security policy | Missing | Add a private vulnerability-reporting route before public launch |
-| Issue/PR templates | Missing | Add concise bug, hardware-compatibility, and PR checklists |
-| Code of conduct | Missing | Add only if community participation is actively invited |
-| Changelog | Missing | Add before the next public release |
-| Main protection | Missing | Require CI and block force pushes/deletion |
-| Dependency/security automation | Controlled weekly Dependabot version updates configured; Dependabot alerts, secret scanning, and code scanning disabled | Keep the PR limits; enable the remaining controls supported by the account plan |
-| Actions permissions | Read-only token default; all actions allowed | Keep read-only token; consider restricting allowed actions and pinning action SHAs |
-| Actions runtime | Passing, with Node.js 20 deprecation annotations for `actions/checkout@v4` and `actions/upload-artifact@v4` | Upgrade to Node.js 24-compatible action majors in a separate CI change after validating archive behavior |
+| Repository visibility | Private | Change manually only after the pre-publication checklist is complete |
+| Main protection | Active `Protect main` ruleset; pull request required; deletion and non-fast-forward updates blocked; `swift`, `release-archives (arm64)`, and `release-archives (x86_64)` required | Keep |
+| Dependabot version updates | Controlled weekly configuration for GitHub Actions and Swift packages | Keep |
+| Dependabot alerts | Enabled; no open alerts observed | Keep |
+| Secret scanning | Disabled | Enable at publication where supported |
+| Code scanning | Disabled | Enable if desired as an additional gate |
+| Private vulnerability reporting | Not enabled | Enable when the repository becomes public |
+| Actions token permissions | Read-only by default | Keep |
+| Actions runtime | `actions/checkout@v4` and `actions/upload-artifact@v4` remain on `main`; major-update PRs #43 and #42 are open with passing CI | Review separately from this PR |
 
-## Branch audit before merge
+## Future official binary distribution readiness
 
-This table records the live branches before PR #40 is merged. Cleanup is allowed
-only after `main` contains the final candidate.
+Official application binaries remain blocked on all of the following:
 
-| Branch | PR | PR status | Unique work | Decision after merge | Reason |
-| --- | ---: | --- | --- | --- | --- |
-| `main` | - | active | default branch | keep | Required |
-| `release/final-feature-candidate` | #40 | open draft | complete candidate and publication documentation | delete after merge | Safe only after the normal merge commit and CI pass |
-| `fix/reset-interrupted-gesture` | #30 | closed | accepted implementation; report imported | delete | Candidate preserves implementation and evidence |
-| `fix/use-cgevent-movement-deltas` | #31 | closed rejected | rejected experiment; report imported | delete | Rejection is preserved in the report and closed PR |
-| `fix/abort-stale-gesture-holds` | #32 | closed | accepted implementation; report imported | delete | Candidate preserves implementation and evidence |
-| `perf/gesture-recovery-integration` | #33 | closed | pairwise evidence; report imported | delete | Candidate preserves accepted behavior and report |
-| `perf/reset-scroll-smoothing-state` | #34 | closed | accepted implementation; report imported | delete | Candidate preserves implementation and evidence |
-| `fix/preserve-scroll-delta-fields` | #35 | closed | accepted implementation; report imported | delete | Candidate preserves implementation and evidence |
-| `refactor/standardize-config-defaults` | #36 | closed | accepted implementation; report imported | delete | Candidate preserves implementation and evidence |
-| `release/public-distribution-readiness` | #37 | closed | accepted release tooling; report imported | delete | Candidate preserves implementation and evidence |
-| `perf/scroll-processing-integration` | #38 | closed | pairwise evidence; report imported | delete | Candidate preserves accepted behavior and report |
-| `perf/all-runtime-integration` | #39 | closed | cumulative runtime evidence; report imported | delete | Candidate preserves optimized runtime and report |
+1. Apple Developer Program membership.
+2. A Developer ID Application certificate.
+3. Final Apple Silicon and Intel builds from the selected release commit.
+4. Developer ID signing of the helper, settings executable, and app with the
+   hardened runtime.
+5. Apple notarization of the final archives.
+6. Stapling and validation of the notarization ticket.
+7. Gatekeeper verification from fresh archive extractions.
+8. Clean-machine functional testing on Apple Silicon.
+9. Clean-machine functional testing on Intel.
+10. Final SHA-256 checksum generation and verification.
+11. Signed-out download and first-launch verification.
 
-Preserve `performance-baseline-v1` and release tags `v0.1.0`, `v0.2.0`, and
-`v0.3.0`. Closed PR discussion remains available after branch deletion.
+The historical v0.3.0 app ZIP is not a substitute for these steps. No binary
+should be published as official until every item is complete.
 
-## Merge and cleanup result
+## Conclusion
 
-- PR #40 was marked ready and merged normally into `main` as
-  `31834f12d683bfc808f53becd4e6bd85dbea9411`.
-- The post-merge `main` Actions run `30267474904` completed successfully.
-- The final cleanup-documentation Actions run `30267681685` also completed
-  successfully; it retained the Node.js 20 action-runtime deprecation annotations
-  recorded above.
-- The following obsolete branches were deleted locally and remotely after
-  ancestry, patch-equivalence, report, and closed-PR checks:
-  - `fix/abort-stale-gesture-holds`
-  - `fix/preserve-scroll-delta-fields`
-  - `fix/reset-interrupted-gesture`
-  - `fix/use-cgevent-movement-deltas`
-  - `perf/all-runtime-integration`
-  - `perf/gesture-recovery-integration`
-  - `perf/reset-scroll-smoothing-state`
-  - `perf/scroll-processing-integration`
-  - `refactor/standardize-config-defaults`
-  - `release/final-feature-candidate`
-  - `release/public-distribution-readiness`
-- The retained local branch is `main`.
-- The retained remote branch is `origin/main`.
-- Retained tags are `performance-baseline-v1`, `v0.1.0`, `v0.2.0`, and
-  `v0.3.0`.
-- No release, tag, repository visibility, license, or runtime behavior was
-  changed during cleanup.
-
-## Final owner checkpoint
-
-The current source tree is technically suitable for a public repository. The
-repository as a whole is **not yet cleared for public visibility** because the
-license, commit-email disclosure, and handling of older release assets require
-owner decisions. Official binaries are **not ready to publish**.
+After this branch is merged, the current source tree is ready for publication
+under the MIT License. The repository must remain private until the obsolete
+release entries receive explicit deletion approval and the remaining manual
+GitHub publication actions are completed. Official binary distribution remains
+separately blocked.

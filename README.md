@@ -6,17 +6,17 @@
 
   <p>
     <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml"><img src="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml/badge.svg?branch=main" alt="Test status"></a>
-    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest"><img src="https://img.shields.io/github/v/release/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased?label=release" alt="Latest release"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
     <img src="https://img.shields.io/badge/macOS-12%2B-black?logo=apple" alt="macOS 12 or newer">
     <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
   </p>
 
   <p>
-    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest">Latest release</a>
-    &middot;
     <a href="#installation">Installation</a>
     &middot;
     <a href="config/README.md">Terminal and configuration guide</a>
+    &middot;
+    <a href="LICENSE">MIT License</a>
   </p>
 </div>
 
@@ -104,9 +104,9 @@ available when the defaults do not match another setup.
 ### Current distribution status
 
 An official Developer ID signed and notarized download is not available yet.
-The existing v0.3.0 app asset is an older, ad-hoc-signed Apple Silicon validation
-build and does not contain the final candidate. Until a new signed release is
-published, installing the current source is the recommended path.
+The historical v0.3.0 app asset is an older, ad-hoc-signed Apple Silicon
+validation build and does not contain the final candidate. Until a new signed
+release is published, installing the current source is the recommended path.
 
 ### Install the native app from source
 
@@ -292,18 +292,12 @@ especially when they include the mouse model, connection method, macOS version,
 button IDs, and read-only Diagnostics output. Run `swift test` and both debug and
 release builds before proposing source changes.
 
-Contribution terms are not finalized until the repository owner selects a
-license and adds `CONTRIBUTING.md`. Open an issue before investing in a large
-change.
+The project is available under the MIT License. Open an issue before investing
+in a large change.
 
 ## License
 
-No license has been selected yet. The repository must not be described as open
-source until the owner adds one. Making source visible on GitHub does not by
-itself grant permission to copy, modify, or redistribute it.
-
-The [publication-readiness report](docs/PUBLICATION_READINESS.md) compares MIT
-and Apache-2.0 and records the remaining owner decision.
+mx3-lite is available under the [MIT License](LICENSE).
 
 ## Trademark disclaimer
 

@@ -191,7 +191,7 @@ The final choice and exact copyright-holder name remain owner decisions.
 | Code of conduct | Missing | Add only if community participation is actively invited |
 | Changelog | Missing | Add before the next public release |
 | Main protection | Missing | Require CI and block force pushes/deletion |
-| Dependabot / secret / code scanning | Disabled | Enable the controls supported by the account plan |
+| Dependency/security automation | Controlled weekly Dependabot version updates configured; Dependabot alerts, secret scanning, and code scanning disabled | Keep the PR limits; enable the remaining controls supported by the account plan |
 | Actions permissions | Read-only token default; all actions allowed | Keep read-only token; consider restricting allowed actions and pinning action SHAs |
 | Actions runtime | Passing, with Node.js 20 deprecation annotations for `actions/checkout@v4` and `actions/upload-artifact@v4` | Upgrade to Node.js 24-compatible action majors in a separate CI change after validating archive behavior |
 

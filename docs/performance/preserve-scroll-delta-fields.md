@@ -1,6 +1,6 @@
 # Performance report: preserve scroll delta fields
 
-Tracking issue: [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25)
+Tracking issue: #25
 
 ## Decision
 

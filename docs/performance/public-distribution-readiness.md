@@ -1,6 +1,6 @@
 # Performance report: public distribution readiness
 
-Tracking issue: [#27](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/27)
+Tracking issue: #27
 
 ## Decision
 

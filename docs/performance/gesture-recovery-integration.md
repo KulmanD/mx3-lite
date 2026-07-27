@@ -1,7 +1,6 @@
 # Interaction report: gesture recovery
 
-Candidates: [#21](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/21)
-and [#23](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/23)
+Candidates: #21 and #23
 
 ## Decision
 

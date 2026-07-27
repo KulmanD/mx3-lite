@@ -1,7 +1,6 @@
 # Performance report: scroll processing integration
 
-Tracking issues: [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24)
-and [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25)
+Tracking issues: #24 and #25
 
 ## Decision
 

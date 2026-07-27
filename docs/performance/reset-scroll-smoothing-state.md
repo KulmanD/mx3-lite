@@ -1,6 +1,6 @@
 # Performance report: reset scroll smoothing state
 
-Tracking issue: [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24)
+Tracking issue: #24
 
 ## Decision
 

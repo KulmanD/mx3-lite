@@ -2,21 +2,21 @@
 
 Audit date: 2026-07-27
 
-Source baseline: `main` at `74d3bee6d9500e4a56f0062ec34b9c36d0443d42`
+Source baseline: `main` at `e43c0ba7b62b63a08de5c2647a6dbc9ca07b6959`
 
 Runtime measurement commit: `727060fb03ad76d752d413db41bfa5d5132e3dc8`
 
 This report separates source repository publication from future official
-binary distribution. It does not change repository visibility, delete releases
-or tags, modify GitHub settings, or authorize application binaries.
+binary distribution. It does not change repository visibility, modify GitHub
+settings, or authorize application binaries.
 
 ## Executive status
 
 | Distribution step | Status | Reason |
 | --- | --- | --- |
 | Keep developing and testing privately | Ready | Source, CI, measurements, physical validation, and packaging evidence are present |
-| Publish the source tree | Ready after this documentation branch is merged | The MIT license, security policy, generic configuration naming, and source installation guidance are present |
-| Make the GitHub repository public | Pending final manual GitHub actions | Remove the obsolete v0.2.0 and v0.3.0 release entries after explicit confirmation, then enable the selected public security controls and verify the repository while signed out |
+| Publish the source tree | Ready | The MIT license, security policy, generic configuration naming, and source installation guidance are present on `main` |
+| Make the GitHub repository public | Pending final manual GitHub actions | Merge the final README update, enable the selected public security controls, and verify the repository while signed out |
 | Publish official app binaries | Not ready | Developer ID signing, hardened runtime, notarization, stapling, clean-machine tests, checksums, and public download verification remain incomplete |
 
 ## Completed owner decisions
@@ -59,7 +59,7 @@ were not enabled at the time of this update.
 - Root `SECURITY.md` supports the latest `main` source, rejects public
   vulnerability disclosure, directs future reports to GitHub private
   vulnerability reporting once enabled, and directs ordinary bugs to Issues.
-- GitHub should detect the MIT License after this branch is merged into `main`.
+- GitHub detects the root file as the MIT License.
 
 ### Generic configuration verification
 
@@ -77,36 +77,24 @@ were not enabled at the time of this update.
 Historical commits and tags still contain the retired personal configuration
 filename. The owner has accepted that history, so no rewrite is required.
 
-### Existing releases and assets
+### Removed releases and preserved tags
 
 The release assets were downloaded and re-inspected on 2026-07-27. Their GitHub
 digests matched the downloaded files.
 
-| Release | Exact assets | Finding | Recommendation |
+| Release | Removed assets | Finding | Result |
 | --- | --- | --- | --- |
-| `v0.2.0` | `mx3-lite-v0.2.0.zip`; `mx3-lite-v0.2.0.zip.sha256` | The source ZIP contains the retired personal configuration filename and predates the final candidate | Delete the GitHub release entry and both assets; retain tag `v0.2.0` |
-| `v0.3.0` | `mx3-lite-app-v0.3.0.zip`; `mx3-lite-app-v0.3.0.zip.sha256`; `mx3-lite-source-v0.3.0.zip`; `mx3-lite-source-v0.3.0.zip.sha256` | The source ZIP contains the retired personal configuration filename; the app ZIP is ad-hoc signed, thin `arm64`, has no Team ID, contains the retired app resource name, and fails Gatekeeper assessment | Delete the GitHub release entry and all four assets; retain tag `v0.3.0` |
+| `v0.2.0` | `mx3-lite-v0.2.0.zip`; `mx3-lite-v0.2.0.zip.sha256` | The source ZIP contained the retired personal configuration filename and predated the final candidate | Release entry and both assets deleted; tag `v0.2.0` retained |
+| `v0.3.0` | `mx3-lite-app-v0.3.0.zip`; `mx3-lite-app-v0.3.0.zip.sha256`; `mx3-lite-source-v0.3.0.zip`; `mx3-lite-source-v0.3.0.zip.sha256` | The source ZIP contained the retired personal configuration filename; the app ZIP was ad hoc signed, thin `arm64`, had no Team ID, contained the retired app resource name, and failed Gatekeeper assessment | Release entry and all four assets deleted; tag `v0.3.0` retained |
 
-The README no longer links to `releases/latest` or presents either release as a
-current download. It recommends installation from the current source until an
-official signed and notarized release exists.
-
-Deletion is intentionally pending explicit owner confirmation. These commands
-delete the release entries and their assets without deleting the Git tags:
-
-```sh
-gh release delete v0.2.0 \
-  --repo KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased --yes
-gh release delete v0.3.0 \
-  --repo KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased --yes
-```
-
-Do not add `--cleanup-tag`; the `v0.2.0` and `v0.3.0` tags must remain.
+The GitHub Releases page is empty. Tags `performance-baseline-v1`, `v0.1.0`,
+`v0.2.0`, and `v0.3.0` remain. The README recommends installation from the
+current source until an official signed and notarized release exists.
 
 ### Preserved runtime and packaging evidence
 
-- No Swift runtime source or configuration behavior changes in this publication
-  branch.
+- No Swift runtime source or configuration behavior changes in this
+  documentation branch.
 - The release helper remains 433,528 bytes with a 212,992-byte `__TEXT` segment.
 - One controlled 150.086-second idle run recorded zero CPU-time and wakeup
   growth, two stable threads, flat RSS and physical footprint, zero sockets, and
@@ -116,18 +104,17 @@ Do not add `--cleanup-tag`; the `v0.2.0` and `v0.3.0` tags must remain.
 - Source and app archive scripts exclude user config, tests, performance probes,
   build caches, Git metadata, and personal paths.
 - Separate Apple Silicon and Intel validation packages build successfully.
-- The source sharing archive includes `LICENSE` after this branch change.
+- The source sharing archive includes `LICENSE`.
 
 ## Remaining manual GitHub actions
 
 Before changing repository visibility:
 
-1. Merge this source-publication PR after all required checks pass.
-2. Confirm and delete the obsolete `v0.2.0` and `v0.3.0` release entries using
-   the exact commands above. Retain all Git tags.
-3. Review the two open Dependabot action-major PRs independently; they are not
-   part of this publication change.
-4. Review public issues, pull requests, Actions logs, artifacts, tags, and release
+1. Merge the final README improvement PR after all required checks pass.
+2. Review and merge the two open Dependabot action major PRs one at a time. Both
+   use the current Node 24 action runtime and have passing CI, but they remain
+   separate from application behavior.
+3. Review public issues, pull requests, Actions logs, artifacts, tags, and release
    history for presentation context.
 
 At and immediately after the visibility change:
@@ -139,8 +126,7 @@ At and immediately after the visibility change:
    them.
 4. Enable code scanning if the owner wants an additional automated security
    gate.
-5. Confirm GitHub detects the MIT License.
-6. Verify README links, badges, source access, issue/report routes, tags, and the
+5. Verify README links, badges, source access, issue/report routes, tags, and the
    absence of obsolete release downloads while signed out in a private browser
    window.
 
@@ -160,7 +146,7 @@ and adding issue and pull request templates.
 | Code scanning | Disabled | Enable if desired as an additional gate |
 | Private vulnerability reporting | Not enabled | Enable when the repository becomes public |
 | Actions token permissions | Read-only by default | Keep |
-| Actions runtime | `actions/checkout@v4` and `actions/upload-artifact@v4` remain on `main`; major-update PRs #43 and #42 are open with passing CI | Review separately from this PR |
+| Actions runtime | `actions/checkout@v4` and `actions/upload-artifact@v4` remain on `main`; Node 24 major update PRs #43 and #42 are open with passing CI | Merge one at a time after final review |
 
 ## Future official binary distribution readiness
 
@@ -184,8 +170,8 @@ should be published as official until every item is complete.
 
 ## Conclusion
 
-After this branch is merged, the current source tree is ready for publication
-under the MIT License. The repository must remain private until the obsolete
-release entries receive explicit deletion approval and the remaining manual
+The current source tree is ready for publication under the MIT License. The
+obsolete release entries are removed and their Git tags are preserved. The
+repository should remain private until the final README PR and remaining manual
 GitHub publication actions are completed. Official binary distribution remains
 separately blocked.

@@ -1,6 +1,6 @@
 # Performance report: CGEvent movement deltas
 
-Tracking issue: [#22](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/22)
+Tracking issue: #22
 
 ## Decision
 

@@ -111,10 +111,12 @@ current source until an official signed and notarized release exists.
 Before changing repository visibility:
 
 1. Merge the final README improvement PR after all required checks pass.
-2. Review and merge the two open Dependabot action major PRs one at a time. Both
+2. Complete the repository rename and verification using the
+   [repository rename runbook](REPOSITORY_RENAME.md).
+3. Review and merge the two open Dependabot action major PRs one at a time. Both
    use the current Node 24 action runtime and have passing CI, but they remain
    separate from application behavior.
-3. Review public issues, pull requests, Actions logs, artifacts, tags, and release
+4. Review public issues, pull requests, Actions logs, artifacts, tags, and release
    history for presentation context.
 
 At and immediately after the visibility change:

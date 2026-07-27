@@ -5,7 +5,7 @@
   <p>Desktop gestures, smooth scrolling, useful side buttons, and a measured 0% idle CPU worker in native Swift.</p>
 
   <p>
-    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml"><img src="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml/badge.svg?branch=main" alt="Test status"></a>
+    <a href="https://github.com/KulmanD/mx3-lite/actions/workflows/test.yml"><img src="https://github.com/KulmanD/mx3-lite/actions/workflows/test.yml/badge.svg?branch=main" alt="Test status"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
     <img src="https://img.shields.io/badge/macOS-12%2B-black?logo=apple" alt="macOS 12 or newer">
     <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
@@ -22,9 +22,12 @@
 
 ## Why mx3-lite
 
-mx3-lite gives you the MX Master controls that matter every day without a large
-software suite sitting in the background. Start it when you need it, close the
-settings window, and let the small worker handle your mouse.
+mx3-lite is independent native macOS software for MX Master 3 and 3S. It focuses
+on gestures and scrolling as a lightweight alternative for the essential Logi
+Options+ controls. It is not affiliated with Logitech.
+
+Start it when you need it, close the settings window, and let the small worker
+handle your mouse.
 
 - Native Swift worker and SwiftUI settings app
 - Gesture button desktop switching and Mission Control
@@ -134,13 +137,13 @@ below.
 3. Clone the project:
 
    ```sh
-   git clone https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased.git
+   git clone https://github.com/KulmanD/mx3-lite.git
    ```
 
 4. Enter the downloaded project folder:
 
    ```sh
-   cd Mx-Master-3-For-mac-lightweight-swiftBased
+   cd mx3-lite
    ```
 
 5. Build and install the app:

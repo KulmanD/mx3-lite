@@ -1,201 +1,311 @@
-# mx3-lite
+<div align="center">
+  <img src="docs/assets/mx3-lite-icon.png" width="128" height="128" alt="mx3-lite app icon">
+  <h1>mx3-lite</h1>
+  <p><strong>Essential MX Master gestures and scrolling controls for macOS, without keeping Logi Options+ running.</strong></p>
+  <p>Native Swift, manually started, local-only, and built around a small event-driven worker.</p>
 
-Lightweight gesture and scrolling control for Logitech MX Master 3 and MX Master 3S on macOS, without Logi Options+.
+  <p>
+    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml"><img src="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/actions/workflows/test.yml/badge.svg?branch=main" alt="Test status"></a>
+    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest"><img src="https://img.shields.io/github/v/release/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased?label=release" alt="Latest release"></a>
+    <img src="https://img.shields.io/badge/macOS-12%2B-black?logo=apple" alt="macOS 12 or newer">
+    <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
+  </p>
 
-mx3-lite lets the thumb gesture button switch desktops and open Mission Control. It can also reverse and smooth the MX Master scroll wheel without changing MacBook trackpad scrolling.
+  <p>
+    <a href="https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest">Latest release</a>
+    &middot;
+    <a href="#installation">Installation</a>
+    &middot;
+    <a href="config/README.md">Terminal and configuration guide</a>
+  </p>
+</div>
 
-## What it does
+## Why mx3-lite
 
-- Gesture button + move left: switch to the next desktop
-- Gesture button + move right: switch to the previous desktop
-- Gesture button + move up: open Mission Control
-- Gesture button + move down: Control + Down, or disabled in Settings
-- Back side button: Command + `[`
-- Forward side button: Command + `]`
-- Optional MX Master-only scroll reversal and smoothing
+mx3-lite focuses on the controls many MX Master users rely on every day while
+keeping the runtime deliberately small and predictable.
 
-Only one action is sent each time the gesture button is held. The default movement threshold is deliberately conservative to prevent accidental desktop switching.
+- Native Swift worker and SwiftUI settings app
+- Gesture-button desktop switching and Mission Control
+- Back and forward side-button mappings
+- MX Master-only scroll reversal and smoothing
+- MacBook trackpad scrolling and gestures left unchanged in the recommended mode
+- Manual Start and Stop with no automatic login item
+- No account, telemetry, advertisements, updater, or runtime network access
+- No Electron, Node.js, Python runtime, kernel extension, or persistent IPC socket
+- No normal-mode background log, polling loop, or periodic status timer
 
-## Requirements
+This is not a complete replacement for every Logi Options+ feature. It does not
+configure DPI, SmartShift, HID++ hardware settings, per-application profiles, or
+device firmware.
 
-- macOS 12 Monterey or newer
-- Logitech MX Master 3 or MX Master 3S
-- Accessibility permission
-- Input Monitoring permission may also be required
+## Features
 
-## Install the app
+| Area | Behavior |
+| --- | --- |
+| Gesture left | Switch desktops; direction can be reversed in Settings |
+| Gesture right | Switch desktops; direction can be reversed in Settings |
+| Gesture up | Open Mission Control |
+| Gesture down | Send Control + Down, or disable the action |
+| Back button | Send Command + `[` |
+| Forward button | Send Command + `]` |
+| Scrolling | Optional vertical/horizontal reversal, speed controls, and bounded smoothing |
+| Wheel modes | Ratchet and free-spin handling with spike damping and a maximum step |
+| Settings | Native Start/Stop, gesture, button, scroll, and diagnostic controls |
+| Diagnostics | Read-only permission, config, worker, and device checks |
+| Terminal | Optional `mxmaster` wrapper, inspector, foreground debug, and self-test commands |
 
-1. Open the [latest mx3-lite release](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/releases/latest).
-2. Under **Assets**, download the app ZIP for your Mac:
-   - Apple Silicon (M1, M2, M3, M4, or newer): file ending in `macos-arm64.zip`
-   - Intel Mac: file ending in `macos-x86_64.zip`
-   Do not download GitHub's automatic source ZIP unless you want to build the app yourself.
-3. Open the downloaded ZIP.
-4. Move **mx3-lite.app** into your **Applications** folder.
-5. Control-click **mx3-lite.app**, choose **Open**, then confirm **Open**.
+Only one action is sent during each gesture-button hold. The default movement
+threshold is intentionally conservative to reduce accidental desktop switches.
 
-An official release should be Developer ID signed and notarized by Apple. If
-you build the validation archive yourself, it is only ad-hoc signed and macOS
-may require Control-click, **Open** on first launch. This approves that specific
-app without disabling Gatekeeper for the rest of your Mac.
+## Performance
 
-## Allow macOS permissions
+The release helper remains event-driven. Pointer-movement delivery is enabled
+only while a gesture is active, and normal operation does not use a polling loop
+or periodic timer.
 
-1. Open **mx3-lite**.
-2. Select the **Diagnostics** tab.
-3. Click **Accessibility settings**.
-4. Enable **mx3-lite**. If it is not listed, click `+` and select `mx3-lite.app` from Applications.
-5. Return to mx3-lite and click **Input Monitoring settings**.
-6. Enable **mx3-lite** there as well if macOS requires it.
-7. Quit and reopen mx3-lite after changing permissions.
+| Metric | Measured result |
+| --- | ---: |
+| Helper size | `433,528 bytes` |
+| Increase over frozen baseline | `976 bytes` / `0.226%` |
+| `__TEXT` segment | `212,992 bytes`, equal to baseline |
+| Controlled idle CPU | `0.000000%` in the recorded 150.086-second run |
+| Worker threads | `2`, stable |
+| RSS | approximately `10.1 MiB` |
+| Physical footprint | approximately `3.22 MiB` |
+| Idle wakeups | `0` |
+| Network sockets | `0` |
+| Normal-mode log files | `0` |
 
-If macOS shows the bundled `mx3-lite` helper separately, enable that entry too. **Run diagnostics** reports which permission or device check still needs attention.
+These values come from one controlled 150.086-second idle run on the measured
+candidate. They do not guarantee identical counters on every Mac or workload.
+See the [complete candidate report](docs/performance/final-feature-candidate.md)
+and [performance release matrix](docs/performance/performance-release-matrix.md)
+for the environment, method, limitations, and feature-by-feature evidence.
 
-## Start and stop
+## Compatibility and validation
 
-Open mx3-lite and click **Start**. The status light turns green when gesture control is running.
+- Requires macOS 12 Monterey or newer.
+- Builds are validated for Apple Silicon (`arm64`) and Intel (`x86_64`).
+- The final candidate was physically tested on one Logitech MX Master 3S with
+  macOS 26.5.1.
+- That test covered gestures, side buttons, ratchet and free-spin scrolling,
+  reversal, pause/resume, trackpad coexistence, mouse reconnect, power cycle,
+  sleep/wake recovery, and worker lifecycle.
+- MX Master 3 support is implemented and expected, but the final validation
+  matrix was not repeated on an MX Master 3.
 
-You can then quit the settings app with `Command + Q`. The small worker continues running so the mouse controls keep working. Closing the red window may leave the settings app open, as with many Mac apps.
+This is single-device functional evidence, not a universal compatibility claim.
+Connection-specific button IDs can differ, so diagnostics and inspector mode are
+available when the defaults do not match another setup.
 
-Nothing starts automatically after login:
+## Installation
 
-- To start later, open mx3-lite and click **Start**.
-- To stop completely, reopen mx3-lite and click **Stop**.
-- When stopped, no mx3-lite worker remains running.
+### Current distribution status
 
-## Settings guide
+An official Developer ID signed and notarized download is not available yet.
+The existing v0.3.0 app asset is an older, ad-hoc-signed Apple Silicon validation
+build and does not contain the final candidate. Until a new signed release is
+published, installing the current source is the recommended path.
 
-After changing a setting, click **Save**. If the app shows **Saved changes require a worker restart**, click **Restart now**.
+### Install the native app from source
 
-### General
+1. Open Terminal.
+2. Install Apple's command-line developer tools if they are not already present:
 
-**Keep gesture control running** starts or stops the worker.
+   ```sh
+   xcode-select --install
+   ```
 
-**Action backend** controls how macOS keyboard shortcuts are sent. Keep **System Events** selected unless desktop switching does not work on your Mac. **CGEvent** is the alternative.
+3. Download and install mx3-lite:
 
-### Gestures
+   ```sh
+   git clone https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased.git
+   cd Mx-Master-3-For-mac-lightweight-swiftBased
+   bash scripts/install-app.sh
+   open "$HOME/Applications/mx3-lite.app"
+   ```
 
-**Movement threshold** controls how far the mouse must move while the gesture button is held:
+The app is installed to `~/Applications/mx3-lite.app`. The optional terminal
+wrapper is installed to `/usr/local/bin/mxmaster` and may ask for an administrator
+password. Use `bash scripts/install-app.sh --skip-wrapper` to install only the app.
 
-- Lower value: triggers sooner, but may cause accidental actions.
-- Higher value: requires a larger movement.
-- Recommended starting value: `220`.
+Local source builds are ad-hoc signed. On first launch, macOS may require you to
+Control-click `mx3-lite.app`, choose **Open**, and confirm **Open**. Do not disable
+Gatekeeper globally.
 
-**Reverse left and right desktop direction** changes which desktop is selected when moving left or right. It is enabled by default.
+## macOS permissions
 
-**Reverse vertical gesture direction** is useful if moving up behaves like moving down on your Mac.
+mx3-lite needs permission to observe the mouse and send the configured keyboard
+shortcuts.
 
-**Down gesture** can send Control + Down or be disabled.
+1. Open mx3-lite and select **Diagnostics**.
+2. Open **Accessibility settings** and enable mx3-lite.
+3. Open **Input Monitoring settings** and enable mx3-lite if macOS requires it.
+4. If macOS lists the bundled `mx3-lite` helper separately, enable that entry too.
+5. Quit and reopen the app after changing permissions.
 
-The default button IDs are Gesture `5`, Back `3`, and Forward `4`. Leave these unchanged for an MX Master 3/3S unless the buttons are not detected. An empty field disables that button mapping.
+The exact executable you run must have permission. Rebuilding or moving the app
+can cause macOS to request permission again.
 
-### Scrolling
+## Quick usage
 
-**Transform** controls which devices receive the scroll settings:
+1. Open mx3-lite.
+2. Click **Start**. The status changes to **Running**.
+3. Use the gesture, side-button, and scroll controls normally.
+4. Quit the settings app with Command + Q if desired. The lightweight worker
+   continues because Start and Stop are explicit choices.
+5. Reopen mx3-lite and click **Stop** to stop completely. No worker remains after
+   a successful stop.
 
-- **MX Master only**: recommended; leaves the MacBook trackpad unchanged.
-- **All pointing devices**: fallback only; also changes trackpad scrolling.
-- **Disabled**: does not modify scrolling.
+Nothing starts automatically after login. Open mx3-lite and click **Start** when
+you want to use it again.
 
-**Reverse vertical wheel** changes the main wheel direction. **Reverse horizontal wheel** does the same for horizontal scrolling.
+## Settings overview
 
-**Multiplier** changes overall scroll speed. Start at `1.0`. **Acceleration** increases the response to faster wheel movement. **Ratchet multiplier** affects click-by-click wheel mode. **Maximum step** limits large free-spin bursts.
+After changing a setting, click **Save**. If the app reports that a restart is
+required, click **Restart now**.
 
-**Smooth MX Master scrolling** enables smoothing:
+| Setting | Guidance |
+| --- | --- |
+| Movement threshold | Start at `220`; lower triggers sooner, higher reduces accidental actions |
+| Desktop direction | Reverse left/right if desktop movement feels opposite to the gesture |
+| Down gesture | Choose Control + Down or disable it |
+| Button IDs | Defaults are gesture `5`, back `3`, forward `4`; an empty value disables a mapping |
+| Scroll transform | Keep **MX Master only** selected so the MacBook trackpad is unchanged |
+| Wheel direction | Reverse vertical or horizontal scrolling independently |
+| Multiplier and acceleration | Keep both at `1.0` until basic direction feels correct |
+| Balanced (EMA) | Recommended responsive smoothing; factor `0.35` is the default |
+| Dampen free-spin spikes | Useful when large free-spin bursts travel too far |
+| Inertia | Experimental and optional; it can feel less immediate |
+| Action backend | Keep **System Events** selected; CGEvent equivalence remains unqualified |
 
-- **Balanced (EMA)**: recommended, responsive smoothing for normal use.
-- **Dampen free-spin spikes**: useful when free-spin scrolling jumps too far.
-- **Inertia (experimental)**: optional and may feel less immediate.
+Use **Run diagnostics** if gestures or scrolling do not work. Diagnostics are
+read-only: they do not change settings or send mouse or keyboard actions.
 
-The recommended smoothing factor is `0.35`. Higher values feel smoother but can add more delay. Use **Free-spin damping** to shorten large free-spin bursts.
-
-### Diagnostics
-
-Click **Run diagnostics** when gestures or scrolling do not work. It checks the app installation, configuration, worker status, permissions, and whether an MX Master is detected. It does not change settings or send any mouse or keyboard actions.
-
-## Common problems
+## Troubleshooting
 
 ### Gestures do nothing
 
-1. Confirm the status says **Running**.
-2. Run **Diagnostics** and grant any missing permission.
-3. Click **Stop**, then **Start** after changing permissions.
-4. Confirm the Gesture button ID is `5`.
+Confirm the app says **Running**, run Diagnostics, grant any missing permission,
+then Stop and Start the worker. If necessary, verify that the gesture button ID
+is `5` or use inspector mode from the [technical guide](config/README.md).
 
 ### Desktop direction is wrong
 
-Open **Gestures** and change **Reverse left and right desktop direction**, then Save and restart the worker.
+Change **Reverse left and right desktop direction**, save, and restart the worker.
 
 ### Gestures trigger too easily
 
-Increase **Movement threshold** in steps of 20 until it feels comfortable.
+Increase **Movement threshold** in steps of 20 until the gesture feels deliberate.
 
 ### The trackpad scroll direction changed
 
-Open **Scrolling** and set **Transform** to **MX Master only**. Do not use **All pointing devices** unless device-specific filtering does not work on your Mac.
+Set **Scroll transform** to **MX Master only**. **All pointing devices** is a
+fallback that intentionally changes trackpad scrolling too.
 
 ### Scrolling feels delayed or too strong
 
-Keep **Balanced (EMA)** selected and reduce the smoothing factor, or turn smoothing off. Return Multiplier and Acceleration to `1.0` if scrolling is too strong.
+Keep **Balanced (EMA)** selected and reduce its factor, or disable smoothing.
+Return Multiplier and Acceleration to `1.0` before tuning other values.
 
-## Privacy and resource use
+## Privacy and architecture
 
-- No telemetry
-- No network access
-- No advertisements
-- No automatic updates
-- No login item or launch agent
-- No background logging during normal use
-- Event-driven worker with no polling or periodic status checks
+The native SwiftUI app is a transient control surface. The separate worker owns
+the event tap, device detection, gesture state, scroll transformation, and
+synthetic actions. Closing the settings app does not add another resident UI
+process; only the worker remains after Start.
 
-The settings window does not need to remain open. Only the lightweight worker stays running after Start.
+- Configuration stays in
+  `~/Library/Application Support/mx3-lite/config.json`.
+- Configuration is read once when the worker starts.
+- Scroll events are modified and returned in place rather than reposted.
+- Smoothing keeps bounded constant-size state and uses no background timer in
+  the normal EMA or spike-damping modes.
+- System Events is launched only when a mapped action actually fires.
+- There is no telemetry, runtime network path, updater, login item, launch agent,
+  normal-mode log file, or automatic worker start.
 
-## Measured performance
+See [Native app architecture](docs/APP_ARCHITECTURE.md) for the process and
+lifecycle contract.
 
-The final candidate helper is `433,528 bytes`, an increase of `976 bytes`
-(`0.226%`) over the frozen baseline. Its `__TEXT` segment is `212,992 bytes`,
-equal to the baseline.
+## Project status and limitations
 
-In one controlled 150.086-second idle run on an Apple Silicon Mac with macOS
-26.5.1 and an MX Master 3S connected, the worker recorded zero CPU-time growth,
-zero package-idle and interrupt wakeups, two stable threads, and flat memory.
-RSS was approximately `10.1 MiB`; physical footprint was approximately
-`3.22 MiB`, which is substantially lower than RSS. No network sockets or
-normal-mode log files were open. These values describe this specific run, not
-a guarantee for every Mac or workload.
+The integrated candidate has passing CI, controlled idle evidence, and a
+maintainer-run single-device physical validation matrix. The following work is
+deliberately not represented as complete:
 
-See the [complete performance report](docs/performance/final-feature-candidate.md)
-for the environment, exact measurements, interpretation, and remaining tests.
-Maintainers can reproduce the same measurement shape with:
+- Official Developer ID signing, notarization, stapling, and clean-machine tests
+- A fixed combined active-input CPU and latency benchmark
+- Qualification of CGEvent as an equivalent action backend
+- DPI, SmartShift, HID++ hardware configuration, profiles, and firmware support
+- Broad validation across every MX Master model, connection type, and macOS release
 
-```bash
-bash scripts/performance/measure-candidate.sh \
-  --label final-feature-candidate-clean \
-  --runs 1 \
-  --duration 150 \
-  --interval 30 \
-  --warmup 10 \
-  --skip-build
+Before making the repository public or distributing binaries, review
+[Publication readiness](docs/PUBLICATION_READINESS.md) and the
+[Public release guide](docs/PUBLIC_RELEASE.md).
+
+## Building from source
+
+```sh
+swift build
+swift test
+swift build -c release
+bash scripts/build-app.sh
 ```
 
-## Remove mx3-lite
+Build separate validation archives for Apple Silicon and Intel:
+
+```sh
+bash scripts/package-release.sh --arch arm64
+bash scripts/package-release.sh --arch x86_64
+```
+
+These default to ad-hoc signing and are validation artifacts, not official
+public downloads. Developer ID and notarization instructions are in the
+[public release guide](docs/PUBLIC_RELEASE.md). Terminal commands, configuration
+fields, inspector mode, and debug tools are in the
+[technical guide](config/README.md).
+
+## Uninstall
 
 1. Open mx3-lite and click **Stop**.
 2. Quit the app.
-3. Move `mx3-lite.app` from Applications to the Trash.
+3. Run the included uninstall scripts from the project folder:
 
-Your settings file is kept separately so an update or reinstall does not erase your preferences. It is stored at:
+   ```sh
+   bash scripts/uninstall.sh
+   bash scripts/uninstall-app.sh
+   ```
+
+The user configuration is intentionally preserved. Remove it manually only if
+you also want to erase your saved settings:
 
 ```text
 ~/Library/Application Support/mx3-lite/config.json
 ```
 
-## For developers and terminal users
+## Contributing
 
-Source-build instructions, terminal commands, configuration details, inspector mode, and debug tools are in the [technical guide](config/README.md).
+Focused bug reports and reproducible hardware observations are useful,
+especially when they include the mouse model, connection method, macOS version,
+button IDs, and read-only Diagnostics output. Run `swift test` and both debug and
+release builds before proposing source changes.
 
-Maintainers preparing signed Apple Silicon and Intel downloads should follow
-the [public release guide](docs/PUBLIC_RELEASE.md). Release credentials are
-owner-controlled and are never stored in this repository.
+Contribution terms are not finalized until the repository owner selects a
+license and adds `CONTRIBUTING.md`. Open an issue before investing in a large
+change.
 
-The project is native Swift. It does not use Electron, Node.js, Python, a kernel extension, a launch agent, or an auto-updater.
+## License
+
+No license has been selected yet. The repository must not be described as open
+source until the owner adds one. Making source visible on GitHub does not by
+itself grant permission to copy, modify, or redistribute it.
+
+The [publication-readiness report](docs/PUBLICATION_READINESS.md) compares MIT
+and Apache-2.0 and records the remaining owner decision.
+
+## Trademark disclaimer
+
+This project is independent and is not affiliated with or endorsed by Logitech.
+Logitech, MX Master, and Logi Options+ are trademarks of their respective owner.

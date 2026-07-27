@@ -217,6 +217,31 @@ only after `main` contains the final candidate.
 Preserve `performance-baseline-v1` and release tags `v0.1.0`, `v0.2.0`, and
 `v0.3.0`. Closed PR discussion remains available after branch deletion.
 
+## Merge and cleanup result
+
+- PR #40 was marked ready and merged normally into `main` as
+  `31834f12d683bfc808f53becd4e6bd85dbea9411`.
+- The post-merge `main` Actions run `30267474904` completed successfully.
+- The following obsolete branches were deleted locally and remotely after
+  ancestry, patch-equivalence, report, and closed-PR checks:
+  - `fix/abort-stale-gesture-holds`
+  - `fix/preserve-scroll-delta-fields`
+  - `fix/reset-interrupted-gesture`
+  - `fix/use-cgevent-movement-deltas`
+  - `perf/all-runtime-integration`
+  - `perf/gesture-recovery-integration`
+  - `perf/reset-scroll-smoothing-state`
+  - `perf/scroll-processing-integration`
+  - `refactor/standardize-config-defaults`
+  - `release/final-feature-candidate`
+  - `release/public-distribution-readiness`
+- The retained local branch is `main`.
+- The retained remote branch is `origin/main`.
+- Retained tags are `performance-baseline-v1`, `v0.1.0`, `v0.2.0`, and
+  `v0.3.0`.
+- No release, tag, repository visibility, license, or runtime behavior was
+  changed during cleanup.
+
 ## Final owner checkpoint
 
 The current source tree is technically suitable for a public repository. The

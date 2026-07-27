@@ -5,15 +5,15 @@ tooling, and all accepted runtime changes. Rejected Issue #22 remains excluded.
 
 ## Decision
 
-- Status: implementation, static validation, packaging, and one controlled
-  clean-idle measurement are complete; physical-device checks and owner
-  publication gates remain.
+- Status: implementation, static validation, packaging, one controlled
+  clean-idle measurement, and the maintainer-run physical validation matrix are
+  complete; owner publication gates remain.
 - Functional result: all accepted issue branches coexist in one buildable,
   packageable source tree.
 - Runtime result: exactly the same 433528-byte helper and 212992-byte `__TEXT`
   segment as the optimized runtime-only branch.
-- Merge gate: keep this candidate draft until the physical validation matrix is
-  recorded.
+- Merge gate: physical validation no longer blocks the candidate. Keep the PR
+  draft until the owner makes the separate review and publication decision.
 
 ## Revisions
 
@@ -159,32 +159,65 @@ manual gates.
 - [x] No launch agent, login item, updater, telemetry, or normal log added
 - [x] GitHub Actions: 56 tests plus arm64 and x86_64 archive jobs
 - [x] One controlled 150-second integrated clean-idle measurement
-- [ ] Combined active gesture and scroll workload
-- [ ] Physical MX Master and MacBook trackpad validation
+- [x] Maintainer-run MX Master and MacBook trackpad physical validation
+- [ ] Controlled combined active-input performance measurement
 
-## Remaining physical validation
+## Physical validation
 
-The following checks remain pending and are not implied by the idle result:
+On 2026-07-27, the maintainer reported that the complete manual checklist passed
+on one Logitech MX Master 3S. These are user-observed functional results, not
+automated measurements or a claim of universal compatibility.
 
-- Gesture left, right, and up
-- One action per gesture-button hold
-- Stale gesture cancellation
-- Back and forward buttons
-- Ratchet and free-spin scrolling
-- Scroll direction reversal and pause recovery
-- MacBook trackpad pass-through
-- Mouse power cycle
-- Mouse disconnect and reconnect
-- Mac sleep and wake
+### Environment
 
-To reproduce the idle measurement, build the release helper first when needed,
-then run the command in the controlled-measurement section. Review the generated
-summary and raw evidence before recording another result; do not commit raw
-machine-local evidence directories.
+| Item | Value |
+| --- | --- |
+| Documentation commit before testing | `ed65a24e2517d552423c1a3938ccbea2e8953910` |
+| Runtime candidate commit | `727060fb03ad76d752d413db41bfa5d5132e3dc8` |
+| Mac | MacBook Pro `Mac16,8`, Apple Silicon / arm64 |
+| macOS | 26.5.1 (25F80) |
+| Mouse | Logitech MX Master 3S |
+| Vendor / product ID | `0x046D` / `0xB034` |
+| Connection transport | not separately recorded |
+| Permissions | Accessibility and Input Monitoring granted |
+| Config | `systemEvents`, `mxMasterOnly`, EMA smoothing, threshold `220` |
+| Button IDs | gesture `5`, back `3`, forward `4` |
 
-After the physical matrix passes, the only deferred blueprint-derived
-optimization worth considering is a development-only comparison of
-`systemEvents` and `cgEvent` with 0, 2, 5, and 10 ms keypress hold durations.
+The direct `doctor --verbose` check reported `ready`, detected one MX Master 3S,
+parsed the config, confirmed both permissions, and found the worker initially
+stopped with no PID metadata. The installed wrapper did not expose `doctor`, so
+that check was run through the release helper directly. During physical testing,
+status checks reported one worker at PID `69105`. Final shutdown reported
+stopped, no matching worker, and no stale PID metadata.
+
+### Results
+
+| Area | Result | Coverage |
+| --- | --- | --- |
+| Gestures | pass | left, right, up, one action per hold, repeated gestures, below-threshold movement, partial release, stale hold cancellation, and immediate reuse |
+| Synthetic-key safety | pass | no stuck modifier and no key characters or escape text in Terminal/text input |
+| Side buttons | pass | back and forward in Safari and Finder; gesture button did not leak as normal input; other buttons remained unaffected |
+| MX Master scrolling | pass | slow/fast ratchet, free-spin, reversal, horizontal input, pause/resume, no post-pause jump, and no incorrect residual inertia |
+| Application coverage | pass | scrolling in Safari, Finder, and Terminal or another native application |
+| MacBook trackpad | pass | vertical/horizontal scrolling and gestures remained normal; mouse-only smoothing did not alter trackpad behavior |
+| Mouse power cycle | pass | gestures, scrolling, and side buttons worked after turning the mouse off and on |
+| Connection recovery | pass | gestures, scrolling, and side buttons worked after disconnect and reconnect of the active connection |
+| Sleep and wake | pass | worker and mouse behavior recovered; gestures, scrolling, and side buttons worked after wake |
+| Lifecycle | pass | repeated off/on/status cycles used one worker while running, stopped completely, and removed PID metadata |
+
+The maintainer summarized the checklist as "all worked." No failure was
+reported as missed, duplicated, delayed, incorrect, reconnect-only, or
+sleep-only. The test did not identify the active connection as Bluetooth or a
+specific receiver, and it did not measure active-input CPU or latency.
+
+To reproduce the idle measurement separately, build the release helper first
+when needed, then run the command in the controlled-measurement section. Review
+the generated summary and raw evidence before recording another result; do not
+commit raw machine-local evidence directories.
+
+The only deferred blueprint-derived optimization worth considering is a
+development-only comparison of `systemEvents` and `cgEvent` with 0, 2, 5, and
+10 ms keypress hold durations.
 That experiment is not part of this candidate and does not block documenting
 the current result.
 
@@ -206,6 +239,6 @@ public visibility, and signed-out release-link checks remain owner actions.
 - Tests and performance scripts are excluded from app and sharing archives.
 - User configuration is not migrated or rewritten.
 
-This complete tree is the branch for the remaining physical validation.
-Isolated branches remain useful evidence, but should not be merged individually
-once this candidate is accepted.
+This complete tree now contains the integrated static, idle, and single-device
+physical validation record. Isolated branches remain useful evidence, but
+should not be merged individually once this candidate is accepted.

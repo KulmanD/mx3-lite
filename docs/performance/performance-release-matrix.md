@@ -26,8 +26,8 @@ until their isolated reports are complete.
 | [#21](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/21) | `fix/reset-interrupted-gesture` | `reset-interrupted-gesture.md` | accept | gesture interaction accepted |
 | [#22](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/22) | `fix/use-cgevent-movement-deltas` | `cgevent-movement-deltas.md` | reject | not applicable |
 | [#23](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/23) | `fix/abort-stale-gesture-holds` | `stale-gesture-hold.md` | accept | gesture interaction accepted |
-| [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24) | `perf/reset-scroll-smoothing-state` | `reset-scroll-smoothing-state.md` | accept | integrated clean-idle passed; active and physical checks pending |
-| [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25) | `fix/preserve-scroll-delta-fields` | `preserve-scroll-delta-fields.md` | accept | integrated clean-idle passed; active and physical checks pending |
+| [#24](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/24) | `perf/reset-scroll-smoothing-state` | `reset-scroll-smoothing-state.md` | accept | clean-idle and single-device physical checks passed; active performance pending |
+| [#25](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/25) | `fix/preserve-scroll-delta-fields` | `preserve-scroll-delta-fields.md` | accept | clean-idle and single-device physical checks passed; active performance pending |
 | [#26](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/26) | `refactor/standardize-config-defaults` | `standardize-config-defaults.md` | accept | not applicable |
 | [#27](https://github.com/KulmanD/Mx-Master-3-For-mac-lightweight-swiftBased/issues/27) | `release/public-distribution-readiness` | `public-distribution-readiness.md` | accept | not applicable |
 
@@ -39,14 +39,14 @@ Valid isolated states are `pending`, `accept`, `redesign`, and `reject`.
 | --- | --- | --- | --- |
 | Gesture recovery | #21 + #23 | Both cancel or reset held-gesture state | accept |
 | Gesture movement | #22 + #23 | Both execute on active movement paths | not applicable; #22 rejected |
-| Scroll processing | #24 + #25 | Both change the transformed scroll callback | integrated clean-idle passed; active and physical checks pending |
-| Runtime set | All isolated runtime candidates marked `accept` | Detect cumulative or nonlinear cost | integrated clean-idle passed; active and physical checks pending |
+| Scroll processing | #24 + #25 | Both change the transformed scroll callback | clean-idle and single-device physical checks passed; active performance pending |
+| Runtime set | All isolated runtime candidates marked `accept` | Detect cumulative or nonlinear cost | clean-idle and single-device physical checks passed; active performance pending |
 
 ## Complete candidate
 
 | Branch | Runtime commit | Helper bytes | `__TEXT` bytes | Status |
 | --- | --- | ---: | ---: | --- |
-| `release/final-feature-candidate` | `727060f` | 433528 | 212992 | static, packaging, and integrated clean-idle checks complete; physical validation pending |
+| `release/final-feature-candidate` | `727060f` | 433528 | 212992 | static, packaging, clean-idle, and single-device physical checks complete; owner gates remain |
 
 The complete candidate combines #26 and #27 with the optimized runtime set
 without changing the runtime-only helper size or text layout. Use
@@ -60,11 +60,16 @@ without changing the runtime-only helper size or text layout. Use
 | CPU and wakeup stability | pass | Zero CPU-time, package-idle wakeup, interrupt-wakeup, context-switch, and syscall growth in that run |
 | Thread and memory stability | pass | Two stable threads; RSS flat at 10,600,448 bytes and physical footprint flat at 3,375,584 bytes |
 | Network, normal logging, and stop lifecycle | pass | Zero sockets, zero normal log files, and no worker remaining afterward |
-| Physical MX Master behavior | pending | Gestures, one action per hold, stale cancellation, side buttons, ratchet/free-spin, direction reversal, and pause recovery |
-| MacBook trackpad behavior | pending | MX-Master-only pass-through must be confirmed physically |
-| Mouse power cycle and disconnect/reconnect | pending | No result recorded |
-| Mac sleep and wake | pending | No result recorded |
+| Physical MX Master behavior | pass | Maintainer reported gestures, one action per hold, stale cancellation, side buttons, ratchet/free-spin, direction reversal, and pause recovery all worked |
+| MacBook trackpad behavior | pass | Maintainer reported vertical/horizontal scrolling and trackpad gestures remained normal with MX-only smoothing enabled |
+| Mouse power cycle and disconnect/reconnect | pass | Maintainer reported gestures, scrolling, and side buttons worked after both recovery paths; transport was not separately recorded |
+| Mac sleep and wake | pass | Maintainer reported worker and mouse behavior recovered and all mapped controls worked after wake |
+| Controlled active-input performance | pending | Functional active use passed, but CPU and latency were not measured under a fixed combined workload |
 | Publication-owner gates | unchanged | Developer ID, notarization, clean-machine Gatekeeper checks, repository visibility, license, and signed-out release links remain owner-controlled |
+
+The physical result was reported by the maintainer on 2026-07-27 from one MX
+Master 3S on macOS 26.5.1. It does not establish compatibility with every MX
+Master model, connection transport, Mac, or macOS release.
 
 ## Integration procedure
 

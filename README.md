@@ -114,6 +114,11 @@ This is evidence from one device, not a universal compatibility claim.
 Button IDs can differ by connection, so diagnostics and inspector mode are
 available when the defaults do not match another setup.
 
+MX Master 4 support is planned and has not been validated. See the
+[MX Master 4 support roadmap](docs/MX_MASTER_4_SUPPORT.md) for researched hardware
+differences, remaining work, and the proposed optional feature layers that
+preserve lightweight default operation.
+
 ## Installation
 
 ### Current distribution status

@@ -66,19 +66,6 @@ See the [complete candidate report](docs/performance/final-feature-candidate.md)
 and [performance release matrix](docs/performance/performance-release-matrix.md)
 for the test environment, method, limitations, and feature by feature evidence.
 
-## How it compares
-
-mx3-lite is intentionally focused. The other tools below provide broader mouse
-or Logitech features. Resource numbers are shown only for mx3-lite because this
-project has not measured the alternatives under the same conditions.
-
-| Tool | Best fit | CPU and memory evidence here | Main difference |
-| --- | --- | --- | --- |
-| **mx3-lite** | MX Master 3 and 3S owners who want gestures, side buttons, and tuned scrolling with a very small worker | `0.000%` idle CPU and about `10.6 MB` RSS in the recorded test | Free, MIT licensed, local, and deliberately limited to essential controls |
-| [Logi Options+](https://www.logitech.com/en-us/setup/ergosetup/logi-options.html) | People who want Logitech's complete device software, application settings, Flow, and Smart Actions | Not measured by this project | Official and much broader, including Logitech hardware and account based features |
-| [Mac Mouse Fix](https://github.com/noah-nuebling/mac-mouse-fix) | People who want trackpad style gestures and navigation for many standard mice | Not measured by this project | Broader mouse support; some proprietary mouse buttons may not be recognized |
-| [SteerMouse](https://plentycom.jp/en/steermouse/) | People who want detailed button, wheel, cursor, and application specific controls across many mouse brands | Not measured by this project | Commercial utility with much wider customization |
-
 ## Features
 
 | Control | What it does |
